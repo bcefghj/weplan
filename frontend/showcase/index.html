@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WePlan — AI 周末生活规划师 | 美团 AI Hackathon 2026</title>
+  <meta name="description" content="一句话输入，AI 自动规划吃喝玩乐完整方案，群体投票达成共识，一键预约全搞定">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== Nav ===== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#hero" class="nav-logo"><span class="dot"></span>WePlan</a>
+    <button class="nav-mobile-toggle" aria-label="菜单">☰</button>
+    <ul class="nav-links">
+      <li><a href="#problem">痛点</a></li>
+      <li><a href="#solution">方案</a></li>
+      <li><a href="#demo">Demo</a></li>
+      <li><a href="#architecture">架构</a></li>
+      <li><a href="#critic">校验</a></li>
+      <li><a href="#scenarios">场景</a></li>
+      <li><a href="#tech">技术栈</a></li>
+      <li><a href="#team">团队</a></li>
+      <li><button class="theme-btn" aria-label="切换主题">🌙</button></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ===== 1. Hero ===== -->
+<section class="hero" id="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div class="hero-text">
+        <p class="t-label reveal">美团 AI Hackathon 2026 · 赛题06</p>
+        <h1 class="t-headline reveal reveal-delay-1">一句话，<span class="highlight">全搞定</span></h1>
+        <p class="t-sub reveal reveal-delay-2">WePlan · AI 周末生活规划师 — 告别选择困难，从规划到预约，一步到位</p>
+        <div class="hero-ctas reveal reveal-delay-3">
+          <a href="http://121.41.74.45/demo" class="btn btn-primary" target="_blank">立即体验 Demo →</a>
+          <a href="https://github.com/bcefghj/weplan" class="btn btn-outline" target="_blank">查看源码</a>
+          <a href="http://121.41.74.45/weplan_report.pdf" class="btn btn-ghost" target="_blank">下载报告</a>
+        </div>
+        <div class="hero-stats reveal reveal-delay-4">
+          <div class="hero-stat"><div class="num" data-count="7">0</div><div class="label">AI Agent 协作</div></div>
+          <div class="hero-stat"><div class="num" data-count="200" data-suffix="+">0</div><div class="label">城市 POI 数据</div></div>
+          <div class="hero-stat"><div class="num" data-count="6">0</div><div class="label">预建场景</div></div>
+        </div>
+      </div>
+      <div class="hero-phone reveal reveal-delay-2">
+        <div class="phone-frame">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div style="font-size:.7rem;color:var(--fg-muted);margin-bottom:12px;font-weight:600">📍 杭州 · 周六下午 · 晴 28°C</div>
+            <div class="phone-timeline">
+              <div class="phone-tl-item">
+                <div class="phone-tl-dot"></div>
+                <div class="phone-tl-content">
+                  <div class="phone-tl-time">14:00</div>
+                  <div class="phone-tl-title">🚗 出发</div>
+                  <div class="phone-tl-desc">从家出发，驾车15分钟</div>
+                </div>
+              </div>
+              <div class="phone-tl-item">
+                <div class="phone-tl-dot"></div>
+                <div class="phone-tl-content">
+                  <div class="phone-tl-time">14:30</div>
+                  <div class="phone-tl-title">🏛️ 浙江科技馆</div>
+                  <div class="phone-tl-desc">亲子互动区 · 免费 · 预计2h</div>
+                </div>
+              </div>
+              <div class="phone-tl-item">
+                <div class="phone-tl-dot"></div>
+                <div class="phone-tl-content">
+                  <div class="phone-tl-time">16:30</div>
+                  <div class="phone-tl-title">☕ 星巴克臻选</div>
+                  <div class="phone-tl-desc">步行5分钟 · 休息补给</div>
+                </div>
+              </div>
+              <div class="phone-tl-item">
+                <div class="phone-tl-dot"></div>
+                <div class="phone-tl-content">
+                  <div class="phone-tl-time">17:00</div>
+                  <div class="phone-tl-title">🍜 绿茶餐厅(龙井路店)</div>
+                  <div class="phone-tl-desc">4.8⭐ · 人均¥78 · 已预约17:30</div>
+                </div>
+              </div>
+              <div class="phone-tl-item">
+                <div class="phone-tl-dot"></div>
+                <div class="phone-tl-content">
+                  <div class="phone-tl-time">19:00</div>
+                  <div class="phone-tl-title">🌅 西湖断桥散步</div>
+                  <div class="phone-tl-desc">日落19:15 · 步行10分钟</div>
+                </div>
+              </div>
+              <div class="phone-tl-item">
+                <div class="phone-tl-dot"></div>
+                <div class="phone-tl-content">
+                  <div class="phone-tl-time">20:00</div>
+                  <div class="phone-tl-title">🏠 返程</div>
+                  <div class="phone-tl-desc">打车约¥25 · 20分钟到家</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 2. Problem ===== -->
+<section id="problem">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">痛点洞察</p>
+      <h2 class="t-section reveal">周末出门，为什么这么难？</h2>
+    </div>
+    <div class="pain-grid">
+      <div class="pain-card reveal">
+        <div class="pain-icon">😩</div>
+        <div class="pain-title">找了1小时不知道去哪</div>
+        <div class="pain-desc">美团搜餐厅、大众点评看评价、高德查路线、携程买票……5个App来回切，信息散落一地</div>
+      </div>
+      <div class="pain-card reveal reveal-delay-1">
+        <div class="pain-icon">🧩</div>
+        <div class="pain-title">串不起来</div>
+        <div class="pain-desc">找到了好餐厅，但附近没有适合孩子的地方；活动结束了发现餐厅要等1小时排队</div>
+      </div>
+      <div class="pain-card reveal reveal-delay-2">
+        <div class="pain-icon">🤷</div>
+        <div class="pain-title">"你看着办"</div>
+        <div class="pain-desc">方案发给家人朋友，每个人有不同意见，来回扯皮，最后决策瘫痪——哪也不去了</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 3. Solution ===== -->
+<section id="solution">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">解决方案</p>
+      <h2 class="t-section reveal">WePlan 怎么解决？</h2>
+      <p class="t-sub reveal">四步闭环：输入 → 规划 → 投票 → 执行</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card reveal">
+        <div class="step-num">1</div>
+        <div class="step-title">输入</div>
+        <div class="step-desc">"今天下午带娃出去玩"<br>一句自然语言即可</div>
+      </div>
+      <div class="step-card reveal reveal-delay-1">
+        <div class="step-num">2</div>
+        <div class="step-title">规划</div>
+        <div class="step-desc">7个Agent并行协作<br>10秒内生成完整方案</div>
+      </div>
+      <div class="step-card reveal reveal-delay-2">
+        <div class="step-num">3</div>
+        <div class="step-title">投票</div>
+        <div class="step-desc">分享给家人/朋友<br>投票达成共识</div>
+      </div>
+      <div class="step-card reveal reveal-delay-3">
+        <div class="step-num">4</div>
+        <div class="step-title">执行</div>
+        <div class="step-desc">一键预约餐厅<br>买票、叫车全搞定</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 4. Demo ===== -->
+<section id="demo" class="demo-section">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">在线演示</p>
+      <h2 class="t-section reveal">眼见为实</h2>
+    </div>
+    <div class="reveal">
+      <a href="http://121.41.74.45/demo" class="demo-btn" target="_blank">🚀 立即体验 WePlan Demo →</a>
+    </div>
+    <div class="demo-previews">
+      <div class="demo-preview reveal">
+        <div class="demo-preview-img">💬</div>
+        <div class="demo-preview-label">自然语言对话界面</div>
+      </div>
+      <div class="demo-preview reveal reveal-delay-1">
+        <div class="demo-preview-img">📋</div>
+        <div class="demo-preview-label">方案时间线</div>
+      </div>
+      <div class="demo-preview reveal reveal-delay-2">
+        <div class="demo-preview-img">🧠</div>
+        <div class="demo-preview-label">Agent 思维面板</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 5. Architecture ===== -->
+<section id="architecture">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">系统架构</p>
+      <h2 class="t-section reveal">不是一个 LLM 在回答，是 7 个 Agent 在协作</h2>
+    </div>
+    <div class="arch-container reveal">
+      <div id="arch-svg"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 6. Agent Thinking ===== -->
+<section id="thinking">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">透明推理</p>
+      <h2 class="t-section reveal">每一步推理，都可以看到</h2>
+      <p class="t-sub reveal">Agent 的完整思维链实时展示，从意图解析到方案生成全程透明</p>
+    </div>
+    <div class="thinking-panel reveal" id="thinking-panel"></div>
+  </div>
+</section>
+
+<!-- ===== 7. Critic ===== -->
+<section id="critic">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">方案校验</p>
+      <h2 class="t-section reveal">Critic Agent · 8 项确定性校验</h2>
+      <p class="t-sub reveal">每一份方案都经过严格的确定性规则检查，不是"大概对"，而是"确定对"</p>
+    </div>
+    <div class="critic-grid">
+      <div class="critic-card reveal">
+        <div class="critic-icon">🕐</div>
+        <div class="critic-name">营业时间校验</div>
+      </div>
+      <div class="critic-card reveal reveal-delay-1">
+        <div class="critic-icon">🚗</div>
+        <div class="critic-name">交通时间合理性</div>
+      </div>
+      <div class="critic-card reveal reveal-delay-1">
+        <div class="critic-icon">👶</div>
+        <div class="critic-name">年龄适配</div>
+      </div>
+      <div class="critic-card reveal reveal-delay-2">
+        <div class="critic-icon">🥗</div>
+        <div class="critic-name">饮食需求匹配</div>
+      </div>
+      <div class="critic-card reveal reveal-delay-2">
+        <div class="critic-icon">💰</div>
+        <div class="critic-name">预算控制</div>
+      </div>
+      <div class="critic-card reveal reveal-delay-3">
+        <div class="critic-icon">🌧️</div>
+        <div class="critic-name">天气兼容</div>
+      </div>
+      <div class="critic-card reveal reveal-delay-3">
+        <div class="critic-icon">⏱️</div>
+        <div class="critic-name">时长合理</div>
+      </div>
+      <div class="critic-card reveal reveal-delay-4">
+        <div class="critic-icon">👥</div>
+        <div class="critic-name">容量充足</div>
+      </div>
+    </div>
+    <div class="critic-loop reveal">
+      <div class="critic-loop-step active">📝 生成方案</div>
+      <div class="critic-loop-arrow">→</div>
+      <div class="critic-loop-step">🔍 8项校验</div>
+      <div class="critic-loop-arrow">→</div>
+      <div class="critic-loop-step">✅ 通过 / ❌ 驳回</div>
+      <div class="critic-loop-arrow">→</div>
+      <div class="critic-loop-step">🔄 修改重试</div>
+      <div class="critic-loop-arrow">→</div>
+      <div class="critic-loop-step">✅ 最终通过</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 8. Harness ===== -->
+<section id="harness">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">可靠性工程</p>
+      <h2 class="t-section reveal">借鉴 Claude Code · 98% 确定性基础设施</h2>
+    </div>
+    <div class="harness-quote reveal">
+      "Agent 可靠性 = 确定性基础设施 + LLM 创造力" — Claude Code 论文 (arXiv:2604.14228)
+    </div>
+    <div class="reveal" style="overflow-x:auto">
+      <table class="harness-table">
+        <thead>
+          <tr><th>异常场景</th><th>兜底策略</th><th>恢复时间</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>🍜 餐厅满员</td><td>自动搜索附近3家备选，按评分排序</td><td>&lt; 3s</td></tr>
+          <tr><td>🌧️ 天气突变</td><td>室外方案自动替换为室内方案</td><td>&lt; 5s</td></tr>
+          <tr><td>⏱️ API 超时</td><td>降级到本地缓存数据 + 标记数据时效</td><td>&lt; 1s</td></tr>
+          <tr><td>💰 超出预算</td><td>自动降级至平价替代方案</td><td>&lt; 3s</td></tr>
+          <tr><td>🚗 交通拥堵</td><td>重新计算路线，调整时间安排</td><td>&lt; 5s</td></tr>
+          <tr><td>🔌 LLM 异常</td><td>重试3次 → 降级到规则引擎</td><td>&lt; 10s</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 9. Group Consensus ===== -->
+<section id="consensus">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">群体共识</p>
+      <h2 class="t-section reveal">把手机递给老婆 — 群体共识投票</h2>
+      <p class="t-sub reveal">不再争论"去哪吃"，用数据说话，AI 自动融合多方偏好</p>
+    </div>
+    <div class="vote-flow">
+      <div class="vote-step reveal">
+        <div class="vote-step-icon">🔗</div>
+        <div class="vote-step-title">生成分享链接</div>
+        <div class="vote-step-desc">一键生成投票页面链接</div>
+      </div>
+      <div class="vote-step reveal reveal-delay-1">
+        <div class="vote-step-icon">📱</div>
+        <div class="vote-step-title">家人/朋友投票</div>
+        <div class="vote-step-desc">打开链接即可投票，无需下载</div>
+      </div>
+      <div class="vote-step reveal reveal-delay-2">
+        <div class="vote-step-icon">📊</div>
+        <div class="vote-step-title">实时汇总</div>
+        <div class="vote-step-desc">投票结果实时可见</div>
+      </div>
+      <div class="vote-step reveal reveal-delay-3">
+        <div class="vote-step-icon">🤖</div>
+        <div class="vote-step-title">AI 自动调整</div>
+        <div class="vote-step-desc">根据投票自动优化方案</div>
+      </div>
+    </div>
+    <div class="vote-mock reveal">
+      <div style="font-weight:700;margin-bottom:16px;font-size:1.05rem">🗳️ 方案投票 — 杭州家庭日</div>
+      <div class="vote-option">
+        <span style="font-weight:600;min-width:120px">方案A·科技馆线</span>
+        <div class="vote-bar-wrap"><div class="vote-bar a"></div></div>
+        <span class="vote-pct">65%</span>
+      </div>
+      <div class="vote-option">
+        <span style="font-weight:600;min-width:120px">方案B·西溪湿地</span>
+        <div class="vote-bar-wrap"><div class="vote-bar b"></div></div>
+        <span class="vote-pct">25%</span>
+      </div>
+      <div class="vote-option">
+        <span style="font-weight:600;min-width:120px">方案C·动物园线</span>
+        <div class="vote-bar-wrap"><div class="vote-bar c"></div></div>
+        <span class="vote-pct">10%</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 10. Scenario Gallery ===== -->
+<section id="scenarios">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">预建场景</p>
+      <h2 class="t-section reveal">6 大场景，即刻体验</h2>
+    </div>
+    <div class="scenario-grid">
+      <div class="scenario-card reveal">
+        <div class="scenario-cover">🌞👨‍👩‍👧</div>
+        <div class="scenario-body">
+          <div class="scenario-title">杭州 · 家庭 · 晴天</div>
+          <div class="scenario-desc">西湖周边亲子一日游，科技馆+绿茶餐厅+断桥日落</div>
+          <span class="scenario-tag">热门场景</span>
+        </div>
+      </div>
+      <div class="scenario-card reveal reveal-delay-1">
+        <div class="scenario-cover">☀️👫</div>
+        <div class="scenario-body">
+          <div class="scenario-title">杭州 · 朋友 · 晴天</div>
+          <div class="scenario-desc">灵隐寺→龙井茶园→南宋御街→河坊街夜市</div>
+          <span class="scenario-tag">文艺线</span>
+        </div>
+      </div>
+      <div class="scenario-card reveal reveal-delay-2">
+        <div class="scenario-cover">🌧️👨‍👩‍👧</div>
+        <div class="scenario-body">
+          <div class="scenario-title">杭州 · 家庭 · 雨天</div>
+          <div class="scenario-desc">室内方案：浙江省博物馆+西溪印象城+手工DIY</div>
+          <span class="scenario-tag">雨天备案</span>
+        </div>
+      </div>
+      <div class="scenario-card reveal">
+        <div class="scenario-cover">🏛️👨‍👩‍👧</div>
+        <div class="scenario-body">
+          <div class="scenario-title">北京 · 家庭 · 晴天</div>
+          <div class="scenario-desc">故宫+景山公园+南锣鼓巷+烤鸭晚餐</div>
+          <span class="scenario-tag">经典线</span>
+        </div>
+      </div>
+      <div class="scenario-card reveal reveal-delay-1">
+        <div class="scenario-cover">🎸👫</div>
+        <div class="scenario-body">
+          <div class="scenario-title">北京 · 朋友 · 晴天</div>
+          <div class="scenario-desc">798艺术区+望京SOHO+三里屯+精酿酒吧</div>
+          <span class="scenario-tag">潮流线</span>
+        </div>
+      </div>
+      <div class="scenario-card reveal reveal-delay-2">
+        <div class="scenario-cover">⚡🔄</div>
+        <div class="scenario-body">
+          <div class="scenario-title">动态调整</div>
+          <div class="scenario-desc">天气突变、餐厅满员？AI实时感知并自动切换备选方案</div>
+          <span class="scenario-tag">智能兜底</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 11. Tech Stack ===== -->
+<section id="tech">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">技术栈</p>
+      <h2 class="t-section reveal">技术栈一览</h2>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-card reveal">
+        <div class="tech-card-icon">🧠</div>
+        <div class="tech-card-category">AI 推理</div>
+        <div class="tech-card-name">MiniMax M2.7</div>
+        <ul class="tech-card-details">
+          <li>100 TPS 极速推理</li>
+          <li>204K 上下文窗口</li>
+          <li>Function Calling</li>
+          <li>结构化输出</li>
+        </ul>
+      </div>
+      <div class="tech-card reveal reveal-delay-1">
+        <div class="tech-card-icon">🗺️</div>
+        <div class="tech-card-category">数据源</div>
+        <div class="tech-card-name">高德地图 API</div>
+        <ul class="tech-card-details">
+          <li>真实 POI 搜索</li>
+          <li>路线规划 & 导航</li>
+          <li>实时天气查询</li>
+          <li>地理编码服务</li>
+        </ul>
+      </div>
+      <div class="tech-card reveal reveal-delay-2">
+        <div class="tech-card-icon">⚙️</div>
+        <div class="tech-card-category">后端</div>
+        <div class="tech-card-name">Python FastAPI</div>
+        <ul class="tech-card-details">
+          <li>全异步架构</li>
+          <li>SSE 流式推送</li>
+          <li>ToolHarness 异常兜底</li>
+          <li>7-Agent 编排引擎</li>
+        </ul>
+      </div>
+      <div class="tech-card reveal reveal-delay-3">
+        <div class="tech-card-icon">🎨</div>
+        <div class="tech-card-category">前端</div>
+        <div class="tech-card-name">纯原生实现</div>
+        <ul class="tech-card-details">
+          <li>HTML + CSS + JS</li>
+          <li>零依赖，零构建</li>
+          <li>深色/浅色双主题</li>
+          <li>SSE 实时更新</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 12. Data Strategy ===== -->
+<section id="data">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">数据策略</p>
+      <h2 class="t-section reveal">真实数据 + 高质量 Mock</h2>
+    </div>
+    <div class="data-cols">
+      <div class="data-col reveal">
+        <div class="data-col-title"><span class="dot real"></span>真实数据来源</div>
+        <div class="data-item"><span>高德 POI 搜索</span><span>5000次/月</span></div>
+        <div class="data-item"><span>路线规划</span><span>实时计算</span></div>
+        <div class="data-item"><span>天气预报</span><span>实时 + 3天预测</span></div>
+        <div class="data-item"><span>地理编码</span><span>经纬度 ↔ 地址</span></div>
+      </div>
+      <div class="data-col reveal reveal-delay-1">
+        <div class="data-col-title"><span class="dot mock"></span>高质量 Mock 数据</div>
+        <div class="data-item"><span>POI 数据</span><span>200+ 条目</span></div>
+        <div class="data-item"><span>排队状态</span><span>实时模拟</span></div>
+        <div class="data-item"><span>预约系统</span><span>完整流程</span></div>
+        <div class="data-item"><span>打车 & 配送</span><span>价格+时间模拟</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 13. Commercial Value ===== -->
+<section id="commercial">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">商业价值</p>
+      <h2 class="t-section reveal">与美团小团生态的天然契合</h2>
+    </div>
+    <div class="commercial-points">
+      <div class="commercial-card reveal">
+        <div class="commercial-icon">🏢</div>
+        <div class="commercial-text"><strong>出题方即需求方</strong>出题人来自"美团平台小团Agent产品部"，WePlan 直击其核心业务场景</div>
+      </div>
+      <div class="commercial-card reveal reveal-delay-1">
+        <div class="commercial-icon">📱</div>
+        <div class="commercial-text"><strong>已有产品验证</strong>美团小团AI管家已上线首页，本项目是其"周末规划"核心场景的深度实现</div>
+      </div>
+      <div class="commercial-card reveal reveal-delay-2">
+        <div class="commercial-icon">🔗</div>
+        <div class="commercial-text"><strong>一键执行闭环</strong>直接对接美团服务生态：订餐、购票、打车、配送，完成从规划到消费的全链路</div>
+      </div>
+      <div class="commercial-card reveal reveal-delay-3">
+        <div class="commercial-icon">👨‍👩‍👧‍👦</div>
+        <div class="commercial-text"><strong>家庭消费入口</strong>群体决策投票满足"家庭消费"核心场景，天然适配美团家庭用户群体</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 14. Team & Resources ===== -->
+<section id="team">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">参赛信息</p>
+      <h2 class="t-section reveal">参赛信息 · 材料入口</h2>
+    </div>
+    <div class="team-info reveal">
+      <div class="team-name">戴尚好</div>
+      <div class="team-school">中国科学技术大学</div>
+      <div class="team-event">美团 AI Hackathon 2026 · 命题赛道 · 赛题06</div>
+    </div>
+    <div class="resource-grid">
+      <a href="https://github.com/bcefghj/weplan" class="resource-card reveal" target="_blank">
+        <div class="resource-icon">📦</div>
+        <div class="resource-label">GitHub 源码</div>
+      </a>
+      <a href="http://121.41.74.45/demo" class="resource-card reveal reveal-delay-1" target="_blank">
+        <div class="resource-icon">🚀</div>
+        <div class="resource-label">在线 Demo</div>
+      </a>
+      <a href="http://121.41.74.45/weplan_report.pdf" class="resource-card reveal reveal-delay-2" target="_blank">
+        <div class="resource-icon">📄</div>
+        <div class="resource-label">PDF 报告</div>
+      </a>
+      <a href="#architecture" class="resource-card reveal reveal-delay-3">
+        <div class="resource-icon">📐</div>
+        <div class="resource-label">架构文档</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer class="footer">
+  <div class="wrap">
+    <p>WePlan — AI 周末生活规划师 · 美团 AI Hackathon 2026 · 赛题06</p>
+    <p style="margin-top:6px">Made with ❤️ by <a href="https://github.com/bcefghj" target="_blank">戴尚好</a> · 中国科学技术大学</p>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

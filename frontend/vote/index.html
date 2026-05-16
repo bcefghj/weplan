@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>WePlan · 方案投票</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗳</text></svg>">
+</head>
+<body>
+  <!-- 顶部栏 -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🗓</span>
+        <span class="logo-text">WePlan</span>
+      </div>
+      <div class="header-badge">方案投票</div>
+    </div>
+  </header>
+
+  <!-- 加载状态 -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">加载方案中...</p>
+  </div>
+
+  <!-- 错误状态 -->
+  <div class="error-screen" id="errorScreen" style="display:none;">
+    <div class="error-icon">😥</div>
+    <h3>无法加载方案</h3>
+    <p class="error-msg" id="errorMsg">请检查链接是否正确</p>
+    <button class="btn-primary" onclick="location.reload()">重试</button>
+  </div>
+
+  <!-- 主内容 -->
+  <main class="main" id="mainContent" style="display:none;">
+    <!-- 方案概要 -->
+    <section class="plan-summary">
+      <h1 class="plan-title" id="planTitle"></h1>
+      <p class="plan-highlight" id="planHighlight"></p>
+      <div class="plan-meta">
+        <span class="meta-item"><span class="meta-icon">💰</span><span id="planCost">--</span>/人</span>
+        <span class="meta-item"><span class="meta-icon">⏱</span><span id="planDuration">--</span></span>
+        <span class="meta-item"><span class="meta-icon">📍</span><span id="planCount">--</span>个活动</span>
+      </div>
+    </section>
+
+    <!-- 昵称输入 -->
+    <section class="nickname-section" id="nicknameSection">
+      <div class="nickname-card">
+        <label class="nickname-label">你的昵称</label>
+        <div class="nickname-input-wrapper">
+          <input type="text" class="nickname-input" id="nicknameInput" placeholder="输入昵称参与投票" maxlength="12">
+          <button class="nickname-confirm" id="nicknameConfirm">确认</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 时间线与投票 -->
+    <section class="timeline-section" id="timelineSection">
+      <h2 class="section-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        行程安排
+      </h2>
+      <div class="timeline" id="timeline"></div>
+    </section>
+
+    <!-- 投票结果汇总 -->
+    <section class="results-section" id="resultsSection">
+      <h2 class="section-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        实时投票结果
+      </h2>
+      <div class="results-container" id="resultsContainer">
+        <p class="results-empty">暂无投票数据</p>
+      </div>
+    </section>
+
+    <!-- 提交按钮 -->
+    <div class="submit-area" id="submitArea">
+      <button class="btn-submit" id="submitVoteBtn" disabled>提交投票</button>
+      <p class="submit-hint" id="submitHint">请先输入昵称并为每个活动投票</p>
+    </div>
+
+    <!-- 已投票提示 -->
+    <div class="voted-banner" id="votedBanner" style="display:none;">
+      <span class="voted-icon">✅</span>
+      <span>你已成功投票！感谢参与</span>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+[Unit]
+Description=WePlan FastAPI Backend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/weplan
+ExecStart=/usr/local/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=3
+Environment=PYTHONPATH=/opt/weplan
+
+[Install]
+WantedBy=multi-user.target
