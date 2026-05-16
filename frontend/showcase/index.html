@@ -11,7 +11,7 @@
   <style>
     @font-face{font-family:'Inter';font-style:normal;font-weight:400 900;font-display:swap;src:local('Inter'),local('PingFang SC'),local('Microsoft YaHei');unicode-range:U+0000-00FF}
   </style>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20260517d">
 </head>
 <body>
 
@@ -26,6 +26,7 @@
       <li><a href="#demo">Demo</a></li>
       <li><a href="#architecture">架构</a></li>
       <li><a href="#critic">校验</a></li>
+      <li><a href="#features-new">新特性</a></li>
       <li><a href="#scenarios">场景</a></li>
       <li><a href="#tech">技术栈</a></li>
       <li><a href="#team">团队</a></li>
@@ -48,7 +49,7 @@
           <a href="http://121.41.74.45/weplan_report.pdf" class="btn btn-ghost" target="_blank">下载报告</a>
         </div>
         <div class="hero-stats reveal reveal-delay-4">
-          <div class="hero-stat"><div class="num" data-count="7">0</div><div class="label">AI Agent 协作</div></div>
+          <div class="hero-stat"><div class="num" data-count="8">0</div><div class="label">AI Agent 协作</div></div>
           <div class="hero-stat"><div class="num" data-count="200" data-suffix="+">0</div><div class="label">城市 POI 数据</div></div>
           <div class="hero-stat"><div class="num" data-count="6">0</div><div class="label">预建场景</div></div>
         </div>
@@ -159,7 +160,7 @@
       <div class="step-card reveal reveal-delay-1">
         <div class="step-num">2</div>
         <div class="step-title">规划</div>
-        <div class="step-desc">7个Agent并行协作<br>10秒内生成完整方案</div>
+        <div class="step-desc">8个Agent并行协作<br>10秒内生成完整方案</div>
       </div>
       <div class="step-card reveal reveal-delay-2">
         <div class="step-num">3</div>
@@ -207,7 +208,7 @@
   <div class="wrap">
     <div class="section-header">
       <p class="t-label reveal">系统架构</p>
-      <h2 class="t-section reveal">不是一个 LLM 在回答，是 7 个 Agent 在协作</h2>
+      <h2 class="t-section reveal">不是一个 LLM 在回答，是 8 个 Agent 在协作</h2>
     </div>
     <div class="arch-container reveal">
       <div id="arch-svg"></div>
@@ -279,6 +280,38 @@
       <div class="critic-loop-step">🔄 修改重试</div>
       <div class="critic-loop-arrow">→</div>
       <div class="critic-loop-step">✅ 最终通过</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 7.5 新特性展示 ===== -->
+<section id="features-new" style="padding:60px 0">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">核心新特性</p>
+      <h2 class="t-section reveal">不止于方案，更是全方位体验</h2>
+    </div>
+    <div class="steps-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="step-card reveal">
+        <div class="step-num" style="background:linear-gradient(135deg,#0091FF,#00BFFF)">🗺️</div>
+        <div class="step-title">路线地图可视化</div>
+        <div class="step-desc">高德地图 JS API 2.0<br>每个节点精准标记<br>路线连线一目了然<br>点击卡片地图联动</div>
+      </div>
+      <div class="step-card reveal reveal-delay-1">
+        <div class="step-num" style="background:linear-gradient(135deg,#FF6633,#FFC300)">⭐</div>
+        <div class="step-title">多平台评分</div>
+        <div class="step-desc">高德 + 大众点评 + 美团<br>三平台评分对比展示<br>人均消费、商圈标注<br>精选推荐徽章</div>
+      </div>
+      <div class="step-card reveal reveal-delay-2">
+        <div class="step-num" style="background:linear-gradient(135deg,#38A169,#48BB78)">🔄</div>
+        <div class="step-title">Surgical Swap</div>
+        <div class="step-desc">不满意某个节点？<br>"换一个"按钮一键替换<br>调用高德实时搜索<br>不影响其他安排</div>
+      </div>
+      <div class="step-card reveal reveal-delay-3">
+        <div class="step-num" style="background:linear-gradient(135deg,#B794F4,#9F7AEA)">💰</div>
+        <div class="step-title">Budget Adjust</div>
+        <div class="step-desc">"更省钱"或"更高级"<br>一键级联调整全方案<br>预算弹性测试<br>雷达图实时更新</div>
+      </div>
     </div>
   </div>
 </section>
@@ -460,7 +493,7 @@
           <li>全异步架构</li>
           <li>SSE 流式推送</li>
           <li>ToolHarness 异常兜底</li>
-          <li>7-Agent 编排引擎</li>
+          <li>8-Agent 编排引擎</li>
         </ul>
       </div>
       <div class="tech-card reveal reveal-delay-3">
@@ -473,6 +506,47 @@
           <li>深色/浅色双主题</li>
           <li>SSE 实时更新</li>
         </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 11.5 手机端概念设计 ===== -->
+<section id="mobile-concept" style="padding:60px 0">
+  <div class="wrap">
+    <div class="section-header">
+      <p class="t-label reveal">未来愿景</p>
+      <h2 class="t-section reveal">手机端概念设计 · 随时随地规划</h2>
+      <p class="t-sub reveal">WePlan 的下一步：融入手机原生体验，地图即画布，语音即输入</p>
+    </div>
+    <div class="steps-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="step-card reveal">
+        <div class="step-num" style="background:linear-gradient(135deg,#667eea,#764ba2)">📱</div>
+        <div class="step-title">地图即画布</div>
+        <div class="step-desc">全屏地图为核心交互面<br>底部卡片承载方案信息<br>点击标记查看详情<br>路线动画一目了然</div>
+      </div>
+      <div class="step-card reveal reveal-delay-1">
+        <div class="step-num" style="background:linear-gradient(135deg,#f093fb,#f5576c)">🎙️</div>
+        <div class="step-title">语音交互优先</div>
+        <div class="step-desc">一句话语音输入需求<br>Web Speech API 实时识别<br>免打字·走路也能规划<br>借鉴雷鸟智能眼镜交互</div>
+      </div>
+      <div class="step-card reveal reveal-delay-2">
+        <div class="step-num" style="background:linear-gradient(135deg,#4facfe,#00f2fe)">🔗</div>
+        <div class="step-title">一键分享到微信</div>
+        <div class="step-desc">自然语言生成分享文案<br>包含时间+地点+预算<br>朋友打开即可投票<br>群体共识极速达成</div>
+      </div>
+    </div>
+    <div class="reveal" style="text-align:center;margin-top:32px">
+      <div style="display:inline-flex;gap:16px;flex-wrap:wrap;justify-content:center">
+        <div style="background:var(--fg-muted);background:linear-gradient(135deg,#667eea22,#764ba222);padding:16px 24px;border-radius:12px;font-size:.9rem">
+          🧠 <strong>记忆系统</strong> — 记住你的口味偏好和历史规划
+        </div>
+        <div style="background:linear-gradient(135deg,#f093fb22,#f5576c22);padding:16px 24px;border-radius:12px;font-size:.9rem">
+          📍 <strong>精准定位</strong> — GPS + 网络 + 语义三重定位
+        </div>
+        <div style="background:linear-gradient(135deg,#4facfe22,#00f2fe22);padding:16px 24px;border-radius:12px;font-size:.9rem">
+          🏪 <strong>美团生态</strong> — 直接对接订餐·购票·打车
+        </div>
       </div>
     </div>
   </div>
@@ -573,6 +647,6 @@
   </div>
 </footer>
 
-<script src="app.js"></script>
+<script src="app.js?v=20260517d"></script>
 </body>
 </html>

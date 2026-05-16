@@ -63,6 +63,8 @@ app.add_middleware(
 
 class PlanRequest(BaseModel):
     input: str = Field(..., description="用户自然语言输入")
+    city: str = "杭州"
+    location: Optional[str] = None  # "lng,lat" from GPS
     session_id: Optional[str] = None
     user_id: str = "anonymous"
 
@@ -100,6 +102,17 @@ class ToolRouteRequest(BaseModel):
     mode: str = "driving"
 
 
+class SwapRequest(BaseModel):
+    node_index: int
+    node_type: str = "activity"
+    plan: dict = {}
+
+
+class BudgetAdjustRequest(BaseModel):
+    direction: str = "cheaper"
+    plan: dict = {}
+
+
 # ────────────────── 方案存储 ──────────────────
 
 _plan_store: dict[str, dict] = {}
@@ -108,7 +121,7 @@ _plan_store: dict[str, dict] = {}
 # ────────────────── 核心流程 ──────────────────
 
 
-async def _run_pipeline(raw_input: str, session_id: str):
+async def _run_pipeline(raw_input: str, session_id: str, city: str = "杭州"):
     """主流水线：解析 → 环境 → 搜索 → 综合 → 校验 → 返回"""
 
     # 1. Orchestrator — 意图解析
@@ -123,6 +136,8 @@ async def _run_pipeline(raw_input: str, session_id: str):
         return
 
     intent = orch_result.data
+    if not intent.get("city"):
+        intent["city"] = city
     session_store.update_session(session_id, intent=intent, state="planning")
 
     for t in orch_result.thinking:
@@ -253,7 +268,7 @@ async def create_plan(req: PlanRequest):
     async def event_generator():
         yield _sse("session", {"session_id": session_id})
         try:
-            async for event in _run_pipeline(req.input, session_id):
+            async for event in _run_pipeline(req.input, session_id, city=req.city):
                 yield event
         except Exception as e:
             logger.error("Pipeline error: %s\n%s", e, traceback.format_exc())
@@ -436,6 +451,70 @@ async def api_vote_results(plan_id: str):
     return get_vote_results(plan_id)
 
 
+# ────────────────── Surgical Swap & Budget Adjust ──────────────────
+
+
+@app.post("/api/swap")
+async def swap_node(req: SwapRequest):
+    """Surgical Swap: replace a single node without touching the rest"""
+    plan = req.plan
+    nodes = plan.get("timeline") or plan.get("nodes", [])
+    if req.node_index < 0 or req.node_index >= len(nodes):
+        raise HTTPException(status_code=400, detail="Invalid node_index")
+
+    current = nodes[req.node_index]
+    keyword = "餐厅" if req.node_type == "dining" else "景点 亲子 活动"
+    city = plan.get("city", "杭州")
+
+    result = await amap_tools.search_poi(keyword=keyword, city=city)
+    if result.success and result.data:
+        import random
+        candidates = [p for p in result.data if p.get("name") != current.get("title")]
+        if candidates:
+            pick = random.choice(candidates[:5])
+            new_node = {
+                "title": pick["name"],
+                "subtitle": pick.get("address", ""),
+                "location": pick.get("location", ""),
+                "rating": pick.get("rating", ""),
+                "cost": pick.get("cost", ""),
+                "business_area": pick.get("business_area", ""),
+            }
+            return {"success": True, "node": new_node}
+
+    return {"success": False, "node": None, "message": "未找到替代选项"}
+
+
+@app.post("/api/budget-adjust")
+async def budget_adjust(req: BudgetAdjustRequest):
+    """Budget stress test: make the whole plan cheaper or more premium"""
+    plan = req.plan
+    nodes = plan.get("timeline") or plan.get("nodes", [])
+    direction = req.direction
+
+    keyword = "平价餐厅 小吃" if direction == "cheaper" else "高级餐厅 精致料理"
+    city = plan.get("city", "杭州")
+
+    result = await amap_tools.search_poi(keyword=keyword, city=city)
+    if result.success and result.data:
+        poi_pool = result.data[:10]
+        adjusted_nodes = []
+        for node in nodes:
+            if node.get("icon") in ("🍽", "🍜", "🍲") and poi_pool:
+                pick = poi_pool.pop(0)
+                node["title"] = pick["name"]
+                node["subtitle"] = pick.get("address", "")
+                node["location"] = pick.get("location", node.get("location", ""))
+                node["rating"] = pick.get("rating", "")
+                node["cost"] = pick.get("cost", "")
+                node["business_area"] = pick.get("business_area", "")
+            adjusted_nodes.append(node)
+        plan["timeline"] = adjusted_nodes
+        return {"success": True, "plan": plan}
+
+    return {"success": False, "plan": None, "message": "调整失败"}
+
+
 # ────────────────── 工具直接调用 ──────────────────
 
 
@@ -488,6 +567,25 @@ async def api_get_share(share_id: str):
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "service": "WePlan", "version": "1.0.0"}
+
+
+@app.get("/api/locate")
+async def api_locate(request: Request):
+    """IP-based location fallback: calls Amap IP location API"""
+    client_ip = request.client.host if request.client else ""
+    # Forward headers for real IP behind proxy
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+
+    try:
+        result = await amap_tools.ip_locate(client_ip)
+        if result.success and result.data:
+            return result.data
+    except Exception as e:
+        logger.warning("IP locate error: %s", e)
+
+    return {"city": "杭州", "location": "120.153576,30.287459"}
 
 
 # ────────────────── 启动入口 ──────────────────

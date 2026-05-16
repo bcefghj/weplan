@@ -170,6 +170,7 @@ async def _raw_search_nearby(location: str, keyword: str, radius: int = 3000) ->
         "radius": radius,
         "offset": 10,
         "sortrule": "distance",
+        "extensions": "all",
     }
     resp = await http.get(f"{AMAP_BASE_URL}/place/around", params=params)
     data = resp.json()
@@ -183,6 +184,11 @@ async def _raw_search_nearby(location: str, keyword: str, radius: int = 3000) ->
                 "tel": p.get("tel", ""),
                 "distance": p.get("distance", ""),
                 "type": p.get("type", ""),
+                "business_area": p.get("business_area", ""),
+                "rating": p.get("biz_ext", {}).get("rating", ""),
+                "cost": p.get("biz_ext", {}).get("cost", ""),
+                "opentime": p.get("biz_ext", {}).get("opentimeToday", ""),
+                "tag": p.get("biz_ext", {}).get("tag", ""),
             }
             for p in pois
         ]
@@ -196,7 +202,7 @@ async def search_nearby(location: str, keyword: str, radius: int = 3000) -> Tool
     )
 
 
-async def _raw_get_route(origin: str, destination: str, mode: str = "driving") -> dict:
+async def _raw_get_route(origin: str, destination: str, mode: str = "driving", city: str = "") -> dict:
     http = _get_http()
     if mode == "driving":
         url = f"{AMAP_BASE_URL}/direction/driving"
@@ -206,7 +212,7 @@ async def _raw_get_route(origin: str, destination: str, mode: str = "driving") -
         params = {"key": AMAP_API_KEY, "origin": origin, "destination": destination}
     else:
         url = f"{AMAP_BASE_URL}/direction/transit/integrated"
-        params = {"key": AMAP_API_KEY, "origin": origin, "destination": destination, "city": DEFAULT_CITY}
+        params = {"key": AMAP_API_KEY, "origin": origin, "destination": destination, "city": city or DEFAULT_CITY}
 
     resp = await http.get(url, params=params)
     data = resp.json()
@@ -223,10 +229,10 @@ async def _raw_get_route(origin: str, destination: str, mode: str = "driving") -
     return {"distance": "0", "duration": "0", "mode": mode, "note": "未获取到路线"}
 
 
-async def get_route(origin: str, destination: str, mode: str = "driving") -> ToolResult:
+async def get_route(origin: str, destination: str, mode: str = "driving", city: str = "") -> ToolResult:
     return await _route_harness.execute(
-        _raw_get_route, origin, destination, mode,
-        cache_key=f"route_{origin}_{destination}_{mode}",
+        _raw_get_route, origin, destination, mode, city,
+        cache_key=f"route_{origin}_{destination}_{mode}_{city}",
     )
 
 
@@ -245,3 +251,42 @@ async def _raw_geocode(address: str) -> dict:
 
 async def geocode(address: str) -> ToolResult:
     return await _geocode_harness.execute(_raw_geocode, address, cache_key=f"geo_{address}")
+
+
+# ────────────────────── IP 定位 ──────────────────────
+
+_ip_harness = ToolHarness("amap_ip_locate")
+
+
+async def _raw_ip_locate(ip: str = "") -> dict:
+    http = _get_http()
+    params = {"key": AMAP_API_KEY}
+    if ip and ip not in ("127.0.0.1", "::1", "localhost"):
+        params["ip"] = ip
+    resp = await http.get(f"{AMAP_BASE_URL}/ip", params=params)
+    data = resp.json()
+    if data.get("status") == "1":
+        city = data.get("city", "")
+        if isinstance(city, list):
+            city = city[0] if city else ""
+        rectangle = data.get("rectangle", "")
+        location = ""
+        if rectangle:
+            parts = rectangle.split(";")
+            if len(parts) >= 2:
+                p1 = parts[0].split(",")
+                p2 = parts[1].split(",")
+                if len(p1) == 2 and len(p2) == 2:
+                    lng = (float(p1[0]) + float(p2[0])) / 2
+                    lat = (float(p1[1]) + float(p2[1])) / 2
+                    location = f"{lng:.6f},{lat:.6f}"
+        return {
+            "city": city or "杭州",
+            "province": data.get("province", ""),
+            "location": location,
+        }
+    raise ValueError(f"IP定位失败: {data}")
+
+
+async def ip_locate(ip: str = "") -> ToolResult:
+    return await _ip_harness.execute(_raw_ip_locate, ip, cache_key=f"ip_{ip}")

@@ -12,13 +12,25 @@
       "scene_type": "family",
       "city": "杭州",
       "group_size": 3,
-      "group_composition": ["adult_male", "adult_female", "child_5"],
+      "group_composition": [
+        "adult_male",
+        "adult_female",
+        "child_5"
+      ],
       "duration_hours": 4,
       "time_start": "14:00",
       "budget_total": 500,
-      "constraints": ["child_friendly", "low_calorie_options", "nearby"],
+      "constraints": [
+        "child_friendly",
+        "low_calorie_options",
+        "nearby"
+      ],
       "weather": "sunny",
-      "preferences": ["亲子", "轻食", "户外"]
+      "preferences": [
+        "亲子",
+        "轻食",
+        "户外"
+      ]
     },
     "agent_thinking": [
       {
@@ -96,7 +108,13 @@
         "style": "经济型",
         "total_cost": 356,
         "total_duration_hours": 4.0,
-        "scores": {"cost": 8, "fun": 9, "convenience": 8, "fit": 10, "uniqueness": 6},
+        "scores": {
+          "cost": 8,
+          "fun": 9,
+          "convenience": 8,
+          "fit": 10,
+          "uniqueness": 6
+        },
         "nodes": [
           {
             "id": "n1",
@@ -107,7 +125,8 @@
             "subtitle": "滴滴快车 · 约15分钟",
             "cost": 18,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n2",
@@ -116,9 +135,14 @@
             "type": "activity",
             "title": "嘟嘟城儿童职业体验馆",
             "subtitle": "适合3-8岁 · 4.6分 · 角色扮演",
-            "cost": 196,
+            "cost": "98",
             "venue_id": "hz_act_001",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.165,30.280",
+            "rating": "4.6",
+            "dianping_rating": "4.5",
+            "meituan_rating": "4.4",
+            "business_area": "来福士"
           },
           {
             "id": "n3",
@@ -129,7 +153,8 @@
             "subtitle": "步行约10分钟",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n4",
@@ -138,9 +163,14 @@
             "type": "dining",
             "title": "gaga鲜语(来福士店)",
             "subtitle": "轻食沙拉 · 4.5分 · 人均62 · 有低卡",
-            "cost": 120,
+            "cost": "62",
             "venue_id": "hz_rest_013",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "120.165,30.280",
+            "rating": "4.5",
+            "dianping_rating": "4.4",
+            "meituan_rating": "4.3",
+            "business_area": "来福士"
           },
           {
             "id": "n5",
@@ -149,9 +179,14 @@
             "type": "activity",
             "title": "来福士天台花园散步",
             "subtitle": "免费 · 看日落",
-            "cost": 0,
+            "cost": "0",
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.165,30.280",
+            "rating": "4.3",
+            "dianping_rating": "4.2",
+            "meituan_rating": "4.1",
+            "business_area": "来福士"
           },
           {
             "id": "n6",
@@ -162,7 +197,8 @@
             "subtitle": "滴滴快车 · 约15分钟",
             "cost": 22,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           }
         ]
       },
@@ -172,7 +208,13 @@
         "style": "教育型",
         "total_cost": 298,
         "total_duration_hours": 4.0,
-        "scores": {"cost": 9, "fun": 7, "convenience": 7, "fit": 8, "uniqueness": 8},
+        "scores": {
+          "cost": 9,
+          "fun": 7,
+          "convenience": 7,
+          "fit": 8,
+          "uniqueness": 8
+        },
         "nodes": [
           {
             "id": "n1",
@@ -183,7 +225,8 @@
             "subtitle": "滴滴快车 · 约20分钟",
             "cost": 25,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n2",
@@ -192,9 +235,14 @@
             "type": "activity",
             "title": "浙江自然博物院(杭州馆)",
             "subtitle": "恐龙化石 · 4.7分 · 免费",
-            "cost": 0,
+            "cost": "0",
             "venue_id": "hz_act_009",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.167,30.276",
+            "rating": "4.9",
+            "dianping_rating": "4.8",
+            "meituan_rating": "4.7",
+            "business_area": "武林广场"
           },
           {
             "id": "n3",
@@ -205,7 +253,8 @@
             "subtitle": "约15分钟",
             "cost": 18,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n4",
@@ -214,9 +263,14 @@
             "type": "dining",
             "title": "素匠泰式健康料理(西溪店)",
             "subtitle": "泰式轻食 · 4.4分 · 人均65 · 低卡",
-            "cost": 195,
+            "cost": "68",
             "venue_id": "hz_rest_012",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "120.088,30.277",
+            "rating": "4.4",
+            "dianping_rating": "4.3",
+            "meituan_rating": "4.2",
+            "business_area": "西溪"
           },
           {
             "id": "n5",
@@ -225,9 +279,14 @@
             "type": "activity",
             "title": "西溪湿地东门散步",
             "subtitle": "免费区域 · 看鸟",
-            "cost": 0,
+            "cost": "0",
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.075,30.271",
+            "rating": "4.8",
+            "dianping_rating": "4.7",
+            "meituan_rating": "4.6",
+            "business_area": "西溪湿地"
           },
           {
             "id": "n6",
@@ -238,7 +297,8 @@
             "subtitle": "滴滴快车",
             "cost": 20,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           }
         ]
       },
@@ -248,7 +308,13 @@
         "style": "舒适型",
         "total_cost": 428,
         "total_duration_hours": 4.0,
-        "scores": {"cost": 7, "fun": 8, "convenience": 10, "fit": 8, "uniqueness": 5},
+        "scores": {
+          "cost": 7,
+          "fun": 8,
+          "convenience": 10,
+          "fit": 8,
+          "uniqueness": 5
+        },
         "nodes": [
           {
             "id": "n1",
@@ -259,7 +325,8 @@
             "subtitle": "滴滴快车 · 约15分钟",
             "cost": 18,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n2",
@@ -268,9 +335,14 @@
             "type": "activity",
             "title": "乐堡儿童王国(城西银泰店)",
             "subtitle": "室内乐园 · 4.5分 · 适合3-8岁",
-            "cost": 158,
+            "cost": "128",
             "venue_id": "hz_act_004",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.107,30.283",
+            "rating": "4.5",
+            "dianping_rating": "4.4",
+            "meituan_rating": "4.3",
+            "business_area": "城西银泰"
           },
           {
             "id": "n3",
@@ -281,7 +353,8 @@
             "subtitle": "同商场内 · 步行2分钟",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n4",
@@ -290,9 +363,14 @@
             "type": "dining",
             "title": "鲨鱼菲特轻食(城西银泰店)",
             "subtitle": "轻食 · 4.3分 · 人均48 · 低卡",
-            "cost": 144,
+            "cost": "45",
             "venue_id": "hz_rest_014",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "120.107,30.283",
+            "rating": "4.3",
+            "dianping_rating": "4.2",
+            "meituan_rating": "4.1",
+            "business_area": "城西银泰"
           },
           {
             "id": "n5",
@@ -301,9 +379,12 @@
             "type": "activity",
             "title": "城西银泰儿童区逛逛",
             "subtitle": "乐高店+绘本馆",
-            "cost": 68,
+            "cost": "0",
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.107,30.283",
+            "rating": "4.2",
+            "business_area": "城西银泰"
           },
           {
             "id": "n6",
@@ -314,7 +395,8 @@
             "subtitle": "滴滴快车 · 约15分钟",
             "cost": 20,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           }
         ]
       }
@@ -340,14 +422,23 @@
       "scene_type": "friends",
       "city": "杭州",
       "group_size": 4,
-      "group_composition": ["adult_male", "adult_male", "adult_female", "adult_female"],
+      "group_composition": [
+        "adult_male",
+        "adult_male",
+        "adult_female",
+        "adult_female"
+      ],
       "duration_hours": 6,
       "time_start": "13:00",
       "budget_per_person": 200,
       "budget_total": 800,
       "constraints": [],
       "weather": "sunny",
-      "preferences": ["社交", "拍照", "美食"]
+      "preferences": [
+        "社交",
+        "拍照",
+        "美食"
+      ]
     },
     "agent_thinking": [
       {
@@ -424,7 +515,13 @@
         "style": "文艺型",
         "total_cost": 712,
         "total_duration_hours": 6.0,
-        "scores": {"cost": 8, "fun": 8, "convenience": 7, "fit": 9, "uniqueness": 9},
+        "scores": {
+          "cost": 8,
+          "fun": 8,
+          "convenience": 7,
+          "fit": 9,
+          "uniqueness": 9
+        },
         "nodes": [
           {
             "id": "n1",
@@ -435,7 +532,8 @@
             "subtitle": "地铁1号线 · 凤起路站",
             "cost": 16,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n2",
@@ -444,9 +542,14 @@
             "type": "activity",
             "title": "浙江省博物馆(孤山馆区)",
             "subtitle": "免费 · 4.7分 · 越王勾践剑必看",
-            "cost": 0,
+            "cost": "0",
             "venue_id": "hz_act_007",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.142,30.254",
+            "rating": "4.9",
+            "dianping_rating": "4.8",
+            "meituan_rating": "4.7",
+            "business_area": "孤山"
           },
           {
             "id": "n3",
@@ -455,9 +558,14 @@
             "type": "activity",
             "title": "% Arabica(龙井路店) 下午茶",
             "subtitle": "网红咖啡 · 4.6分 · 人均45",
-            "cost": 180,
+            "cost": "50",
             "venue_id": "hz_rest_050",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.131,30.246",
+            "rating": "4.6",
+            "dianping_rating": "4.5",
+            "meituan_rating": "4.4",
+            "business_area": "龙井路"
           },
           {
             "id": "n4",
@@ -468,7 +576,8 @@
             "subtitle": "沿西湖步行约15分钟",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n5",
@@ -477,9 +586,14 @@
             "type": "activity",
             "title": "南山路CityWalk",
             "subtitle": "中国美院 · 太子湾 · 拍照",
-            "cost": 0,
+            "cost": "0",
             "venue_id": "hz_act_018",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.153,30.244",
+            "rating": "4.7",
+            "dianping_rating": "4.6",
+            "meituan_rating": "4.5",
+            "business_area": "南山路"
           },
           {
             "id": "n6",
@@ -490,7 +604,8 @@
             "subtitle": "步行约10分钟",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n7",
@@ -499,9 +614,14 @@
             "type": "dining",
             "title": "花舍咖餐厅(南山路店)",
             "subtitle": "花艺西餐 · 4.6分 · 人均108",
-            "cost": 432,
+            "cost": "85",
             "venue_id": "hz_rest_030",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "120.155,30.242",
+            "rating": "4.5",
+            "dianping_rating": "4.4",
+            "meituan_rating": "4.3",
+            "business_area": "南山路"
           },
           {
             "id": "n8",
@@ -512,7 +632,8 @@
             "subtitle": "步行或骑共享单车",
             "cost": 4,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           }
         ]
       },
@@ -522,7 +643,13 @@
         "style": "活力型",
         "total_cost": 756,
         "total_duration_hours": 6.0,
-        "scores": {"cost": 7, "fun": 9, "convenience": 7, "fit": 7, "uniqueness": 8},
+        "scores": {
+          "cost": 7,
+          "fun": 9,
+          "convenience": 7,
+          "fit": 7,
+          "uniqueness": 8
+        },
         "nodes": [
           {
             "id": "n1",
@@ -533,7 +660,8 @@
             "subtitle": "打车去西溪 · 约25分钟",
             "cost": 48,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n2",
@@ -542,9 +670,14 @@
             "type": "activity",
             "title": "西溪湿地骑行+皮划艇",
             "subtitle": "户外运动 · 4.7分",
-            "cost": 280,
+            "cost": "80",
             "venue_id": "hz_act_016",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.063,30.275",
+            "rating": "4.7",
+            "dianping_rating": "4.6",
+            "meituan_rating": "4.5",
+            "business_area": "西溪湿地"
           },
           {
             "id": "n3",
@@ -555,7 +688,8 @@
             "subtitle": "步行到天目里",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n4",
@@ -566,7 +700,8 @@
             "subtitle": "蔦屋书店 · 拍照 · 免费",
             "cost": 0,
             "venue_id": "hz_act_019",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n5",
@@ -577,7 +712,8 @@
             "subtitle": "火锅+奶茶 · 4.5分 · 人均107",
             "cost": 428,
             "venue_id": "hz_rest_019",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "120.155,30.260"
           },
           {
             "id": "n6",
@@ -588,7 +724,8 @@
             "subtitle": "地铁/打车",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           }
         ]
       },
@@ -598,7 +735,13 @@
         "style": "休闲型",
         "total_cost": 680,
         "total_duration_hours": 6.0,
-        "scores": {"cost": 8, "fun": 7, "convenience": 8, "fit": 8, "uniqueness": 7},
+        "scores": {
+          "cost": 8,
+          "fun": 7,
+          "convenience": 8,
+          "fit": 8,
+          "uniqueness": 7
+        },
         "nodes": [
           {
             "id": "n1",
@@ -609,7 +752,8 @@
             "subtitle": "地铁到龙翔桥站",
             "cost": 16,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n2",
@@ -620,7 +764,8 @@
             "subtitle": "历史街区 · 4.5分 · 免费",
             "cost": 0,
             "venue_id": "hz_act_020",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n3",
@@ -631,7 +776,8 @@
             "subtitle": "网红下午茶 · 4.5分 · 人均55",
             "cost": 220,
             "venue_id": "hz_rest_040",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n4",
@@ -642,7 +788,8 @@
             "subtitle": "步行约10分钟",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n5",
@@ -653,7 +800,8 @@
             "subtitle": "免费 · 4.6分 · 汉服体验",
             "cost": 0,
             "venue_id": "hz_act_008",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n6",
@@ -664,7 +812,8 @@
             "subtitle": "步行约15分钟到湖滨银泰",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n7",
@@ -675,7 +824,8 @@
             "subtitle": "杭帮菜 · 4.5分 · 人均68",
             "cost": 272,
             "venue_id": "hz_rest_002",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "120.155,30.260"
           },
           {
             "id": "n8",
@@ -686,7 +836,8 @@
             "subtitle": "各自回家",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           }
         ]
       }
@@ -712,13 +863,24 @@
       "scene_type": "family",
       "city": "杭州",
       "group_size": 3,
-      "group_composition": ["adult_male", "adult_female", "child_5"],
+      "group_composition": [
+        "adult_male",
+        "adult_female",
+        "child_5"
+      ],
       "duration_hours": 4,
       "time_start": "14:00",
       "budget_total": 600,
-      "constraints": ["child_friendly", "indoor_only"],
+      "constraints": [
+        "child_friendly",
+        "indoor_only"
+      ],
       "weather": "rainy",
-      "preferences": ["亲子", "室内", "互动"]
+      "preferences": [
+        "亲子",
+        "室内",
+        "互动"
+      ]
     },
     "agent_thinking": [
       {
@@ -793,7 +955,13 @@
         "style": "体验型",
         "total_cost": 528,
         "total_duration_hours": 4.0,
-        "scores": {"cost": 6, "fun": 10, "convenience": 6, "fit": 9, "uniqueness": 9},
+        "scores": {
+          "cost": 6,
+          "fun": 10,
+          "convenience": 6,
+          "fit": 9,
+          "uniqueness": 9
+        },
         "nodes": [
           {
             "id": "n1",
@@ -804,7 +972,8 @@
             "subtitle": "滴滴快车 · 雨天约25分钟",
             "cost": 35,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n2",
@@ -813,9 +982,14 @@
             "type": "activity",
             "title": "杭州极地海洋公园",
             "subtitle": "海豚表演 · 4.5分 · 企鹅馆",
-            "cost": 310,
+            "cost": "150",
             "venue_id": "hz_act_002",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.218,30.193",
+            "rating": "4.4",
+            "dianping_rating": "4.3",
+            "meituan_rating": "4.2",
+            "business_area": "萧山"
           },
           {
             "id": "n3",
@@ -826,7 +1000,8 @@
             "subtitle": "附近商场 · 约10分钟",
             "cost": 15,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n4",
@@ -835,9 +1010,14 @@
             "type": "dining",
             "title": "哺哺亲子餐厅(城西银泰店)",
             "subtitle": "亲子餐厅 · 4.5分 · 有儿童区",
-            "cost": 198,
+            "cost": "55",
             "venue_id": "hz_rest_031",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "120.107,30.283",
+            "rating": "4.3",
+            "dianping_rating": "4.2",
+            "meituan_rating": "4.1",
+            "business_area": "城西银泰"
           },
           {
             "id": "n5",
@@ -848,7 +1028,8 @@
             "subtitle": "滴滴快车 · 约20分钟",
             "cost": 28,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           }
         ]
       },
@@ -858,7 +1039,13 @@
         "style": "便捷型",
         "total_cost": 438,
         "total_duration_hours": 4.0,
-        "scores": {"cost": 7, "fun": 7, "convenience": 10, "fit": 8, "uniqueness": 5},
+        "scores": {
+          "cost": 7,
+          "fun": 7,
+          "convenience": 10,
+          "fit": 8,
+          "uniqueness": 5
+        },
         "nodes": [
           {
             "id": "n1",
@@ -869,7 +1056,8 @@
             "subtitle": "滴滴快车 · 约15分钟",
             "cost": 18,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n2",
@@ -880,7 +1068,8 @@
             "subtitle": "职业体验 · 4.6分 · 50+职业",
             "cost": 150,
             "venue_id": "hz_act_003",
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n3",
@@ -891,7 +1080,8 @@
             "subtitle": "步行2分钟",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n4",
@@ -902,7 +1092,8 @@
             "subtitle": "免费玩 · 创意搭建",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           },
           {
             "id": "n5",
@@ -913,7 +1104,8 @@
             "subtitle": "主题餐厅 · 4.4分 · 有游乐区",
             "cost": 248,
             "venue_id": "hz_rest_035",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "120.155,30.260"
           },
           {
             "id": "n6",
@@ -924,7 +1116,8 @@
             "subtitle": "滴滴快车",
             "cost": 22,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "120.155,30.260"
           }
         ]
       }
@@ -950,13 +1143,24 @@
       "scene_type": "family",
       "city": "北京",
       "group_size": 3,
-      "group_composition": ["adult_male", "adult_female", "child_6"],
+      "group_composition": [
+        "adult_male",
+        "adult_female",
+        "child_6"
+      ],
       "duration_hours": 4,
       "time_start": "13:30",
       "budget_total": 500,
-      "constraints": ["child_friendly", "science_tech"],
+      "constraints": [
+        "child_friendly",
+        "science_tech"
+      ],
       "weather": "sunny",
-      "preferences": ["科技", "教育", "互动"]
+      "preferences": [
+        "科技",
+        "教育",
+        "互动"
+      ]
     },
     "agent_thinking": [
       {
@@ -1032,7 +1236,13 @@
         "style": "教育型",
         "total_cost": 326,
         "total_duration_hours": 4.5,
-        "scores": {"cost": 9, "fun": 9, "convenience": 8, "fit": 10, "uniqueness": 8},
+        "scores": {
+          "cost": 9,
+          "fun": 9,
+          "convenience": 8,
+          "fit": 10,
+          "uniqueness": 8
+        },
         "nodes": [
           {
             "id": "n1",
@@ -1043,7 +1253,8 @@
             "subtitle": "地铁8号线 · 奥林匹克公园站",
             "cost": 12,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n2",
@@ -1052,9 +1263,14 @@
             "type": "activity",
             "title": "中国科技馆",
             "subtitle": "5大展厅 · 4.7分 · 互动体验",
-            "cost": 90,
+            "cost": "30",
             "venue_id": "bj_act_001",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.391,39.991",
+            "rating": "4.8",
+            "dianping_rating": "4.7",
+            "meituan_rating": "4.6",
+            "business_area": "奥林匹克公园"
           },
           {
             "id": "n3",
@@ -1063,9 +1279,12 @@
             "type": "activity",
             "title": "IMAX球幕影院",
             "subtitle": "太空探索纪录片 · 震撼",
-            "cost": 30,
+            "cost": "45",
             "venue_id": "bj_act_001",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.391,39.991",
+            "rating": "4.6",
+            "business_area": "奥林匹克公园"
           },
           {
             "id": "n4",
@@ -1076,7 +1295,8 @@
             "subtitle": "科技馆附近商圈",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n5",
@@ -1085,9 +1305,14 @@
             "type": "dining",
             "title": "局气(奥体店)",
             "subtitle": "网红京菜 · 4.4分 · 兔爷土豆泥",
-            "cost": 194,
+            "cost": "80",
             "venue_id": "bj_rest_030",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "116.396,40.005",
+            "rating": "4.5",
+            "dianping_rating": "4.4",
+            "meituan_rating": "4.3",
+            "business_area": "奥体"
           },
           {
             "id": "n6",
@@ -1098,7 +1323,8 @@
             "subtitle": "地铁8号线",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           }
         ]
       },
@@ -1108,7 +1334,13 @@
         "style": "平衡型",
         "total_cost": 278,
         "total_duration_hours": 4.5,
-        "scores": {"cost": 9, "fun": 8, "convenience": 8, "fit": 8, "uniqueness": 7},
+        "scores": {
+          "cost": 9,
+          "fun": 8,
+          "convenience": 8,
+          "fit": 8,
+          "uniqueness": 7
+        },
         "nodes": [
           {
             "id": "n1",
@@ -1119,7 +1351,8 @@
             "subtitle": "地铁8号线 · 森林公园南门站",
             "cost": 12,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n2",
@@ -1128,9 +1361,14 @@
             "type": "activity",
             "title": "奥林匹克森林公园",
             "subtitle": "骑行+放风筝 · 免费 · 4.7分",
-            "cost": 40,
+            "cost": "0",
             "venue_id": "bj_act_011",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.395,40.010",
+            "rating": "4.7",
+            "dianping_rating": "4.6",
+            "meituan_rating": "4.5",
+            "business_area": "奥森"
           },
           {
             "id": "n3",
@@ -1141,7 +1379,8 @@
             "subtitle": "步行到科技馆约10分钟",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n4",
@@ -1150,9 +1389,14 @@
             "type": "activity",
             "title": "中国科技馆(精选2个展厅)",
             "subtitle": "探索与发现+科技与生活",
-            "cost": 90,
+            "cost": "30",
             "venue_id": "bj_act_001",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.391,39.991",
+            "rating": "4.8",
+            "dianping_rating": "4.7",
+            "meituan_rating": "4.6",
+            "business_area": "奥林匹克公园"
           },
           {
             "id": "n5",
@@ -1163,7 +1407,8 @@
             "subtitle": "附近用餐",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n6",
@@ -1174,7 +1419,8 @@
             "subtitle": "小火锅 · 4.1分 · 人均68 · 快速",
             "cost": 136,
             "venue_id": "bj_rest_011",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n7",
@@ -1185,7 +1431,8 @@
             "subtitle": "地铁8号线",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           }
         ]
       },
@@ -1195,7 +1442,13 @@
         "style": "探索型",
         "total_cost": 385,
         "total_duration_hours": 4.5,
-        "scores": {"cost": 8, "fun": 9, "convenience": 6, "fit": 9, "uniqueness": 9},
+        "scores": {
+          "cost": 8,
+          "fun": 9,
+          "convenience": 6,
+          "fit": 9,
+          "uniqueness": 9
+        },
         "nodes": [
           {
             "id": "n1",
@@ -1206,7 +1459,8 @@
             "subtitle": "地铁4号线 · 动物园站",
             "cost": 8,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n2",
@@ -1217,7 +1471,8 @@
             "subtitle": "4D球幕电影 · 4.6分 · 星空体验",
             "cost": 45,
             "venue_id": "bj_act_003",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n3",
@@ -1228,7 +1483,8 @@
             "subtitle": "天文馆旁即动物园",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n4",
@@ -1239,7 +1495,8 @@
             "subtitle": "看国宝 · 4.6分 · 孩子最爱",
             "cost": 55,
             "venue_id": "bj_act_005",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n5",
@@ -1250,7 +1507,8 @@
             "subtitle": "西直门商圈",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n6",
@@ -1261,7 +1519,8 @@
             "subtitle": "老北京菜 · 4.3分 · 炸酱面",
             "cost": 245,
             "venue_id": "bj_rest_006",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "116.405,39.915"
           },
           {
             "id": "n7",
@@ -1272,7 +1531,8 @@
             "subtitle": "地铁4号线/2号线",
             "cost": 8,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           }
         ]
       }
@@ -1298,14 +1558,27 @@
       "scene_type": "friends",
       "city": "北京",
       "group_size": 4,
-      "group_composition": ["adult", "adult", "adult", "adult"],
+      "group_composition": [
+        "adult",
+        "adult",
+        "adult",
+        "adult"
+      ],
       "duration_hours": 5,
       "time_start": "13:00",
       "budget_per_person": 300,
       "budget_total": 1200,
-      "constraints": ["artistic", "cultural"],
+      "constraints": [
+        "artistic",
+        "cultural"
+      ],
       "weather": "sunny",
-      "preferences": ["文艺", "展览", "拍照", "特色美食"]
+      "preferences": [
+        "文艺",
+        "展览",
+        "拍照",
+        "特色美食"
+      ]
     },
     "agent_thinking": [
       {
@@ -1383,7 +1656,13 @@
         "style": "文艺型",
         "total_cost": 1080,
         "total_duration_hours": 5.5,
-        "scores": {"cost": 7, "fun": 9, "convenience": 7, "fit": 10, "uniqueness": 10},
+        "scores": {
+          "cost": 7,
+          "fun": 9,
+          "convenience": 7,
+          "fit": 10,
+          "uniqueness": 10
+        },
         "nodes": [
           {
             "id": "n1",
@@ -1394,7 +1673,8 @@
             "subtitle": "打车到798 · 约30分钟",
             "cost": 80,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n2",
@@ -1403,9 +1683,14 @@
             "type": "activity",
             "title": "UCCA尤伦斯当代艺术中心",
             "subtitle": "当代艺术大展 · 必看",
-            "cost": 240,
+            "cost": "80",
             "venue_id": "bj_act_008",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.493,39.984",
+            "rating": "4.8",
+            "dianping_rating": "4.7",
+            "meituan_rating": "4.6",
+            "business_area": "798"
           },
           {
             "id": "n3",
@@ -1414,9 +1699,12 @@
             "type": "activity",
             "title": "798园区漫步拍照",
             "subtitle": "工业风建筑 · 各色画廊 · 免费",
-            "cost": 0,
+            "cost": "0",
             "venue_id": "bj_act_008",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.494,39.983",
+            "rating": "4.6",
+            "business_area": "798"
           },
           {
             "id": "n4",
@@ -1425,9 +1713,12 @@
             "type": "dining",
             "title": "798园区咖啡馆下午茶",
             "subtitle": "精品咖啡 · 工业风",
-            "cost": 160,
+            "cost": "55",
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.494,39.983",
+            "rating": "4.4",
+            "business_area": "798"
           },
           {
             "id": "n5",
@@ -1438,7 +1729,8 @@
             "subtitle": "前往三里屯 · 约20分钟",
             "cost": 40,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n6",
@@ -1447,9 +1739,14 @@
             "type": "dining",
             "title": "一坐一忘(三里屯店)",
             "subtitle": "创意云南菜 · 4.4分 · 人均128",
-            "cost": 512,
+            "cost": "120",
             "venue_id": "bj_rest_038",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "116.455,39.934",
+            "rating": "4.6",
+            "dianping_rating": "4.5",
+            "meituan_rating": "4.4",
+            "business_area": "三里屯"
           },
           {
             "id": "n7",
@@ -1458,9 +1755,14 @@
             "type": "activity",
             "title": "三里屯太古里闲逛",
             "subtitle": "夜景 · 潮流地标",
-            "cost": 0,
+            "cost": "0",
             "venue_id": "bj_act_016",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.455,39.934",
+            "rating": "4.5",
+            "dianping_rating": "4.4",
+            "meituan_rating": "4.3",
+            "business_area": "三里屯"
           },
           {
             "id": "n8",
@@ -1471,7 +1773,8 @@
             "subtitle": "各自打车/地铁",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           }
         ]
       },
@@ -1481,7 +1784,13 @@
         "style": "浪漫型",
         "total_cost": 920,
         "total_duration_hours": 5.0,
-        "scores": {"cost": 8, "fun": 8, "convenience": 8, "fit": 9, "uniqueness": 8},
+        "scores": {
+          "cost": 8,
+          "fun": 8,
+          "convenience": 8,
+          "fit": 9,
+          "uniqueness": 8
+        },
         "nodes": [
           {
             "id": "n1",
@@ -1492,7 +1801,8 @@
             "subtitle": "地铁到什刹海站",
             "cost": 24,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n2",
@@ -1503,7 +1813,8 @@
             "subtitle": "五道营胡同 · 4.7分 · 拉花艺术",
             "cost": 168,
             "venue_id": "bj_rest_033",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n3",
@@ -1514,7 +1825,8 @@
             "subtitle": "文艺小店 · 独立咖啡 · 安静",
             "cost": 0,
             "venue_id": "bj_act_025",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n4",
@@ -1525,7 +1837,8 @@
             "subtitle": "步行约15分钟到什刹海",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n5",
@@ -1536,7 +1849,8 @@
             "subtitle": "湖景 · 胡同 · 银锭桥日落",
             "cost": 0,
             "venue_id": "bj_act_023",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n6",
@@ -1547,7 +1861,8 @@
             "subtitle": "花园餐厅 · 4.5分 · 湖景",
             "cost": 632,
             "venue_id": "bj_rest_032",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "116.405,39.915"
           },
           {
             "id": "n7",
@@ -1558,7 +1873,8 @@
             "subtitle": "华灯初上 · 夜景",
             "cost": 0,
             "venue_id": "bj_act_023",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n8",
@@ -1569,7 +1885,8 @@
             "subtitle": "各自地铁/打车",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           }
         ]
       },
@@ -1579,7 +1896,13 @@
         "style": "文化型",
         "total_cost": 860,
         "total_duration_hours": 5.0,
-        "scores": {"cost": 8, "fun": 8, "convenience": 7, "fit": 8, "uniqueness": 8},
+        "scores": {
+          "cost": 8,
+          "fun": 8,
+          "convenience": 7,
+          "fit": 8,
+          "uniqueness": 8
+        },
         "nodes": [
           {
             "id": "n1",
@@ -1590,7 +1913,8 @@
             "subtitle": "地铁6号线 · 南锣鼓巷站",
             "cost": 24,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n2",
@@ -1601,7 +1925,8 @@
             "subtitle": "胡同文化 · 文创小店 · 4.3分",
             "cost": 60,
             "venue_id": "bj_act_022",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n3",
@@ -1612,7 +1937,8 @@
             "subtitle": "日式咖啡 · 4.4分 · 拍照",
             "cost": 192,
             "venue_id": "bj_rest_035",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n4",
@@ -1623,7 +1949,8 @@
             "subtitle": "6号线转2号线 · 到前门",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n5",
@@ -1634,7 +1961,8 @@
             "subtitle": "百年老街 · 老字号 · 中轴线",
             "cost": 0,
             "venue_id": "bj_act_024",
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n6",
@@ -1645,7 +1973,8 @@
             "subtitle": "前门大街内步行",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n7",
@@ -1656,7 +1985,8 @@
             "subtitle": "烤鸭 · 4.5分 · 故宫景观",
             "cost": 592,
             "venue_id": "bj_rest_004",
-            "status": "reserved"
+            "status": "reserved",
+            "location": "116.405,39.915"
           },
           {
             "id": "n8",
@@ -1667,7 +1997,8 @@
             "subtitle": "拍照打卡 · 免费",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           },
           {
             "id": "n9",
@@ -1678,7 +2009,8 @@
             "subtitle": "各自返程",
             "cost": 0,
             "venue_id": null,
-            "status": "ready"
+            "status": "ready",
+            "location": "116.405,39.915"
           }
         ]
       }
@@ -1710,7 +2042,9 @@
           "group_size": 3,
           "duration_hours": 4,
           "time_start": "14:00",
-          "constraints": ["child_friendly"],
+          "constraints": [
+            "child_friendly"
+          ],
           "weather": "sunny"
         },
         "agent_thinking": [
@@ -1822,7 +2156,9 @@
           }
         ],
         "plan_diff": {
-          "changed_nodes": ["n4"],
+          "changed_nodes": [
+            "n4"
+          ],
           "old_n4": {
             "title": "gaga鲜语(来福士店)",
             "subtitle": "轻食 · 4.5分 · 人均62",
@@ -1909,7 +2245,11 @@
         "turn": 3,
         "input": "下午3点我有个电话要打，需要留1小时",
         "intent_delta": {
-          "blocked_time": {"start": "15:00", "end": "16:00", "reason": "电话会议"},
+          "blocked_time": {
+            "start": "15:00",
+            "end": "16:00",
+            "reason": "电话会议"
+          },
           "override": "schedule_only"
         },
         "agent_thinking": [
@@ -1938,7 +2278,12 @@
           }
         ],
         "plan_diff": {
-          "changed_nodes": ["n2", "n2b", "n_break", "n4"],
+          "changed_nodes": [
+            "n2",
+            "n2b",
+            "n_break",
+            "n4"
+          ],
           "description": "嘟嘟城拆分为两段，中间插入1小时电话时间"
         },
         "plan": {

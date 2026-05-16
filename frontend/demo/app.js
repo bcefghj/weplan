@@ -1,1342 +1,1152 @@
 /* ============================================================
-   WePlan · AI 周末生活规划师 — 核心逻辑
+   WePlan Desktop Demo · app.js
+   桌面双栏布局 · 6预建案例 · 地图 · 雷达图 · Agent流水线
    ============================================================ */
-
-// ─── 工具函数 ───
-const h = (tag, attrs = {}, children = []) => {
-  const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === 'className') el.className = v;
-    else if (k === 'textContent') el.textContent = v;
-    else if (k === 'innerHTML') el.innerHTML = v;
-    else if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
-    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
-    else if (k === 'dataset') Object.assign(el.dataset, v);
-    else el.setAttribute(k, v);
-  }
-  for (const child of (Array.isArray(children) ? children : [children])) {
-    if (child == null) continue;
-    el.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
-  }
-  return el;
-};
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// ─── 状态管理 ───
+/* ─── State ─── */
 const state = {
-  mode: 'showcase',   // 'showcase' | 'live'
+  mode: 'showcase',
   theme: localStorage.getItem('weplan-theme') || 'light',
-  city: '杭州',
-  sceneMode: 'family',
+  city: '',
+  location: null,
   currentCase: null,
   currentPlanIdx: 0,
   thinkingExpanded: false,
   isAnimating: false,
-  votes: {}
+  votes: {},
 };
 
-// ─── 预建案例数据（从后端API加载 + 本地fallback） ───
-let API_CASES = {};     // 从 /api/cases/:id 加载的完整案例
-let API_CASE_LIST = []; // 案例列表
+/* ─── Map Manager ─── */
+const MapManager = {
+  map: null, markers: [], polylines: [], infoWindow: null, _pending: null,
 
-async function loadCasesFromAPI() {
-  try {
-    const resp = await fetch('/api/cases');
-    if (!resp.ok) return;
-    const data = await resp.json();
-    API_CASE_LIST = data.cases || [];
-    renderPresetButtons();
-  } catch (e) {
-    console.warn('Failed to load cases from API:', e);
-  }
-}
-
-async function loadCaseDetail(caseId) {
-  if (API_CASES[caseId]) return API_CASES[caseId];
-  try {
-    const resp = await fetch(`/api/cases/${caseId}`);
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    API_CASES[caseId] = data;
-    return data;
-  } catch (e) {
-    console.warn('Failed to load case detail:', e);
-    return null;
-  }
-}
-
-function convertAPICaseToLocal(apiCase) {
-  if (!apiCase || !apiCase.plans) return null;
-  const agents = (apiCase.agent_thinking || []).map(a => ({
-    name: a.agent.charAt(0).toUpperCase() + a.agent.slice(1),
-    icon: { orchestrator: '🎯', context: '📋', dining: '🍽', activity: '🎪', synthesizer: '🧩', critic: '🔍' }[a.agent] || '⚙️',
-    thinking: (a.thoughts || []).join('\n')
-  }));
-
-  const plans = apiCase.plans.map(p => ({
-    name: p.name || p.id || '方案',
-    title: p.name || '推荐方案',
-    subtitle: p.style || '',
-    scores: {
-      cost: (p.scores?.cost || 70) / 100,
-      fun: (p.scores?.fun || 70) / 100,
-      convenience: (p.scores?.convenience || 70) / 100,
-      fit: (p.scores?.fit || 70) / 100,
-      uniqueness: (p.scores?.uniqueness || 70) / 100,
-    },
-    totalCost: `¥${p.total_cost || '?'}`,
-    duration: `${p.total_duration_hours || '?'}h`,
-    count: (p.nodes || []).length,
-    timeline: (p.nodes || []).map(n => ({
-      time: n.time || n.id || '',
-      icon: { transport: '🚗', activity: '🎪', dining: '🍽', rest: '☕' }[n.type] || '📍',
-      title: n.title || '',
-      subtitle: n.subtitle || '',
-      tags: [
-        n.cost ? { text: `¥${n.cost}`, type: 'price' } : null,
-        n.status === 'reserved' ? { text: '已预约', type: 'booked' } : null,
-      ].filter(Boolean),
-      detail: n.subtitle || ''
-    }))
-  }));
-
-  return {
-    id: apiCase.id,
-    userMessage: apiCase.input || '',
-    aiReply: `收到！正在为你规划「${apiCase.title}」🎯\n\n${apiCase.subtitle || ''}\n\nAgent 团队开始工作...`,
-    agents: agents.length ? agents : AGENT_PIPELINE_TEMPLATE.map(a => ({ ...a, thinking: '正在分析...' })),
-    plans: plans
-  };
-}
-
-function renderPresetButtons() {
-  const container = document.querySelector('.preset-buttons');
-  if (!container || !API_CASE_LIST.length) return;
-  container.innerHTML = '';
-  const emojis = { family: '👨‍👩‍👧', friends: '👫', couple: '💑', solo: '🧘', umbrella: '🌧️' };
-  API_CASE_LIST.forEach(c => {
-    const btn = h('button', {
-      className: 'preset-btn',
-      dataset: { case: c.id },
-      onClick: () => playShowcaseFromAPI(c.id)
-    }, [
-      h('span', { className: 'preset-emoji', textContent: emojis[c.cover_emoji] || emojis[c.scene_type] || '🗓' }),
-      h('span', { className: 'preset-text', textContent: c.title })
-    ]);
-    container.appendChild(btn);
-  });
-}
-
-const PREBUILT_CASES = {
-  'family-park': {
-    id: 'family-park',
-    userMessage: '这个周末想带家人出去玩，孩子5岁，想找点有趣的亲子活动，预算500以内，最好在西湖附近。',
-    aiReply: '收到！我来为您规划一个温馨的家庭亲子周末 🎪\n\n根据您的需求，我会综合考虑：\n• 适合5岁小朋友的活动\n• 西湖周边的优质场所\n• 500元以内的合理预算\n• 交通便捷、行程紧凑\n\n正在调度 AI Agent 团队为您规划中...',
-    agents: [
-      { name: 'Orchestrator', icon: '🎯', thinking: '接收到家庭亲子出游需求。关键约束: 5岁儿童、西湖附近、预算500。将任务分发给上下文分析、活动搜索、餐饮推荐、交通规划等Agent。' },
-      { name: 'Context', icon: '📋', thinking: '分析用户画像:\n- 家庭出游，含5岁幼儿\n- 地点偏好: 西湖附近\n- 预算: ¥500以内\n- 时间: 周末（周六/周日）\n- 天气预报: 周六晴 26°C，适合户外\n- 注意: 幼儿需要休息时间，避免过于紧凑' },
-      { name: 'Activity', icon: '🎪', thinking: '搜索杭州西湖附近亲子活动:\n1. 杭州少儿公园（满陇桂雨）- 评分4.8，免费\n2. 太子湾公园亲子区 - 评分4.7，免费\n3. 西湖边划船体验 - 评分4.6，¥80/小时\n4. 浙江自然博物馆 - 评分4.9，免费\n\n推荐组合: 少儿公园(户外) + 自然博物馆(室内备选)' },
-      { name: 'Dining', icon: '🍽', thinking: '搜索亲子友好餐厅:\n1. 外婆家(西湖银泰) - ¥75/人，儿童椅✓\n2. 绿茶餐厅(龙井路) - ¥65/人，环境好\n3. 弄堂里(南山路) - ¥80/人，杭帮菜\n4. 新白鹿(西湖文化广场) - ¥55/人，排队少\n\n推荐: 绿茶餐厅，环境适合家庭，性价比高' },
-      { name: 'Transport', icon: '🚗', thinking: '规划交通路线:\n- 出发地假设: 市区\n- 方案1: 打车到少儿公园(约¥25)，步行到绿茶餐厅(800m)\n- 方案2: 地铁1号线到龙翔桥站，步行15分钟\n- 返程: 打车回家(约¥30)\n- 总交通费: ¥55-80' },
-      { name: 'Budget', icon: '💰', thinking: '预算核算:\n- 交通: ¥60（打车往返）\n- 少儿公园: 免费（部分游乐设施¥30）\n- 西湖划船: ¥80（1小时）\n- 午餐(绿茶餐厅): ¥195（3人）\n- 小食/饮料: ¥40\n- 总计: ¥405，在预算内 ✅' },
-      { name: 'Optimizer', icon: '✨', thinking: '优化建议:\n1. 时间安排上午为主，避免下午幼儿犯困\n2. 少儿公园→划船→午餐，动线合理\n3. 预留弹性时间应对小朋友突发状况\n4. 备选方案: 如遇下雨改去浙江自然博物馆\n\n生成3套差异化方案供选择。' }
-    ],
-    plans: [
-      {
-        name: '方案 A',
-        title: '🌈 西湖亲子慢游',
-        subtitle: '轻松惬意，适合带小朋友',
-        scores: { cost: 0.7, fun: 0.85, convenience: 0.9, fit: 0.95, uniqueness: 0.6 },
-        totalCost: '¥405',
-        duration: '5h',
-        count: 4,
-        timeline: [
-          {
-            time: '09:30',
-            icon: '🚗',
-            title: '出发',
-            subtitle: '滴滴快车 → 少儿公园',
-            tags: [{ text: '约25分钟', type: 'status' }],
-            detail: '建议提前叫车，周末早高峰可能需要等待。到达少儿公园南门入口最方便。'
-          },
-          {
-            time: '10:00',
-            icon: '🎪',
-            title: '杭州少儿公园',
-            subtitle: '满陇桂雨景区内，大型儿童乐园',
-            tags: [{ text: '★ 4.8', type: 'rating' }, { text: '免费入园', type: 'price' }],
-            detail: '公园内有滑梯、秋千、沙池等设施，适合5岁儿童。桂花季节(9-10月)尤其美丽。建议游玩1.5小时。'
-          },
-          {
-            time: '11:30',
-            icon: '🚣',
-            title: '西湖手划船',
-            subtitle: '苏堤附近码头，一家三口泛舟',
-            tags: [{ text: '★ 4.6', type: 'rating' }, { text: '¥80/h', type: 'price' }],
-            detail: '手划船可坐4人，小朋友需穿救生衣。建议选苏堤到三潭印月方向，风景最佳。'
-          },
-          {
-            time: '12:30',
-            icon: '🍽',
-            title: '绿茶餐厅（龙井路店）',
-            subtitle: '杭帮菜代表，环境清幽',
-            tags: [{ text: '★ 4.5', type: 'rating' }, { text: '¥65/人', type: 'price' }, { text: '已预约', type: 'booked' }],
-            detail: '推荐菜品: 绿茶烤肉、面包诱惑(小朋友最爱)、龙井虾仁。环境有花园，适合家庭用餐。'
-          },
-          {
-            time: '14:00',
-            icon: '🏠',
-            title: '返程休息',
-            subtitle: '打车回家，小朋友午睡',
-            tags: [{ text: '约30分钟', type: 'status' }],
-            detail: '下午小朋友可能犯困，建议回家休息。如果精力充沛可以在西湖边散步到白堤。'
-          }
-        ]
-      },
-      {
-        name: '方案 B',
-        title: '🏛 博物馆探索日',
-        subtitle: '寓教于乐，培养好奇心',
-        scores: { cost: 0.85, fun: 0.75, convenience: 0.85, fit: 0.8, uniqueness: 0.8 },
-        totalCost: '¥320',
-        duration: '5.5h',
-        count: 4,
-        timeline: [
-          {
-            time: '09:00',
-            icon: '🚇',
-            title: '地铁出发',
-            subtitle: '地铁1号线 → 武林广场站',
-            tags: [{ text: '约35分钟', type: 'status' }, { text: '¥4/人', type: 'price' }],
-            detail: '地铁出行更稳定，不受交通拥堵影响。武林广场站C出口出站。'
-          },
-          {
-            time: '09:45',
-            icon: '🏛',
-            title: '浙江自然博物馆',
-            subtitle: '恐龙展厅 + 海洋生物馆',
-            tags: [{ text: '★ 4.9', type: 'rating' }, { text: '免费', type: 'price' }],
-            detail: '5岁小朋友最爱的恐龙化石展、活体蝴蝶馆。周末建议提前在"浙江自然博物院"公众号预约。'
-          },
-          {
-            time: '12:00',
-            icon: '🍽',
-            title: '新白鹿（西湖文化广场店）',
-            subtitle: '高性价比杭帮菜',
-            tags: [{ text: '★ 4.4', type: 'rating' }, { text: '¥55/人', type: 'price' }],
-            detail: '招牌蛋黄鸡翅、糖醋里脊都很受小朋友欢迎。距博物馆步行5分钟。'
-          },
-          {
-            time: '13:30',
-            icon: '🎨',
-            title: '亲子手工坊',
-            subtitle: 'CHUMS创意空间，陶艺体验',
-            tags: [{ text: '★ 4.7', type: 'rating' }, { text: '¥128/组', type: 'price' }],
-            detail: '家长和小朋友一起做陶艺，作品可以烧制后邮寄到家。约1.5小时体验。'
-          },
-          {
-            time: '15:00',
-            icon: '🏠',
-            title: '返程',
-            subtitle: '地铁返回，满载而归',
-            tags: [{ text: '约35分钟', type: 'status' }],
-            detail: '带上博物馆纪念品和陶艺作品，结束充实的一天！'
-          }
-        ]
-      },
-      {
-        name: '方案 C',
-        title: '🌿 西溪湿地野趣',
-        subtitle: '亲近自然，户外探险',
-        scores: { cost: 0.6, fun: 0.9, convenience: 0.7, fit: 0.85, uniqueness: 0.9 },
-        totalCost: '¥480',
-        duration: '6h',
-        count: 4,
-        timeline: [
-          {
-            time: '09:00',
-            icon: '🚗',
-            title: '出发',
-            subtitle: '驾车/打车 → 西溪湿地北门',
-            tags: [{ text: '约40分钟', type: 'status' }],
-            detail: '西溪湿地北门(周家村入口)停车方便，自驾推荐。打车约¥45。'
-          },
-          {
-            time: '09:45',
-            icon: '🛶',
-            title: '摇橹船游湿地',
-            subtitle: '穿越芦苇荡，寻找白鹭',
-            tags: [{ text: '★ 4.8', type: 'rating' }, { text: '¥100/船', type: 'price' }],
-            detail: '一条船可坐6人，船夫会讲解湿地生态。可以观赏到白鹭、翠鸟等鸟类。全程约40分钟。'
-          },
-          {
-            time: '10:45',
-            icon: '🎣',
-            title: '亲子垂钓体验',
-            subtitle: '湿地渔庄，体验传统捕鱼',
-            tags: [{ text: '★ 4.5', type: 'rating' }, { text: '¥60/人', type: 'price' }],
-            detail: '专门的儿童钓台，安全有保障。钓到的鱼可以带走或现场加工。小朋友会非常兴奋！'
-          },
-          {
-            time: '12:00',
-            icon: '🍽',
-            title: '西溪农家菜',
-            subtitle: '湿地内生态餐厅',
-            tags: [{ text: '★ 4.3', type: 'rating' }, { text: '¥80/人', type: 'price' }],
-            detail: '推荐西溪鱼圆、农家土鸡煲。可以吃到刚钓的鱼做成的菜。环境田园风情。'
-          },
-          {
-            time: '14:00',
-            icon: '🦋',
-            title: '湿地探索步道',
-            subtitle: '观鸟+植物认知小游戏',
-            tags: [{ text: '免费', type: 'price' }],
-            detail: '2公里平坦步道，沿途有植物标识牌。可以和小朋友玩"认识几种植物"的游戏。'
-          },
-          {
-            time: '15:00',
-            icon: '🏠',
-            title: '返程',
-            subtitle: '满载自然记忆回家',
-            tags: [{ text: '约40分钟', type: 'status' }],
-            detail: '在湿地商店可以买到特色明信片和手工皂作为纪念。'
-          }
-        ]
-      }
-    ]
+  init() {
+    if (typeof AMap === 'undefined') { this._pending = true; return; }
+    try {
+      this.map = new AMap.Map('mapContainer', {
+        zoom: 13, center: [120.15, 30.25],
+        mapStyle: 'amap://styles/whitesmoke', viewMode: '2D',
+      });
+      this.map.addControl(new AMap.Scale());
+      this.infoWindow = new AMap.InfoWindow({ offset: new AMap.Pixel(0, -30) });
+      if (this._pending && typeof this._pending === 'object') this.renderPlan(this._pending);
+    } catch (e) { console.warn('Map init failed', e); }
   },
 
-  'friends-gathering': {
-    id: 'friends-gathering',
-    userMessage: '周六想和3-4个朋友聚一聚，吃吃喝喝玩玩，最好有点新奇的活动，预算不限，杭州市区就行。',
-    aiReply: '好的！我来安排一个充满惊喜的朋友聚会 🎉\n\n我会为你们找到：\n• 时下最in的新奇体验\n• 氛围感满分的餐厅酒吧\n• 合理的行程动线\n\nAgent 团队开始工作了...',
-    agents: [
-      { name: 'Orchestrator', icon: '🎯', thinking: '朋友聚会需求，4-5人，追求新奇体验，预算不限。分发任务: 重点关注社交性强的活动、网红餐厅、夜生活选项。' },
-      { name: 'Context', icon: '📋', thinking: '用户画像:\n- 朋友聚会，4-5人年轻群体\n- 偏好: 新奇、好玩\n- 预算: 不限\n- 地点: 杭州市区\n- 时间: 周六全天\n- 推测需求: 社交互动 > 观光游览' },
-      { name: 'Activity', icon: '🎪', thinking: '搜索杭州新奇社交活动:\n1. 密室逃脱(谜巢) - 评分4.9，沉浸式体验\n2. 飞盘/腰旗橄榄球 - 黄龙体育中心\n3. Livehouse演出 - MAO/酒球会\n4. VR体验馆 - META VR Park\n5. 陶艺/花艺工作坊\n\n推荐: 密室逃脱(下午) + Livehouse(晚上)' },
-      { name: 'Dining', icon: '🍽', thinking: '搜索适合朋友聚餐的餐厅:\n1. 解香楼(高端杭帮菜) - ¥200/人\n2. 蔡澜越南粉(网红) - ¥60/人\n3. 大龙燚火锅 - ¥130/人\n4. omakase日料 - ¥350/人\n\n推荐: 下午茶→火锅→酒吧 三段式' },
-      { name: 'Transport', icon: '🚗', thinking: '市区内活动，距离不远:\n- 建议打车为主，方便灵活\n- 备选: 共享单车短途接驳\n- 预计交通总费: ¥100-150(全程打车)' },
-      { name: 'Budget', icon: '💰', thinking: '预算估算(5人):\n- 密室逃脱: ¥198/人 × 5 = ¥990\n- 火锅晚餐: ¥130/人 × 5 = ¥650\n- Livehouse: ¥100/人 × 5 = ¥500\n- 下午茶: ¥50/人 × 5 = ¥250\n- 交通: ¥150\n- 总计约 ¥2,540(¥508/人)' },
-      { name: 'Optimizer', icon: '✨', thinking: '优化点:\n1. 密室→火锅→Livehouse，节奏从烧脑到放松\n2. 备选夜间活动: 剧本杀/台球\n3. 提前预约密室和餐厅\n4. 生成3套方案: 冒险型/美食型/文艺型' }
-    ],
-    plans: [
-      {
-        name: '方案 A',
-        title: '🎭 冒险解谜之夜',
-        subtitle: '密室 + 火锅 + 音乐现场',
-        scores: { cost: 0.5, fun: 0.95, convenience: 0.8, fit: 0.9, uniqueness: 0.95 },
-        totalCost: '¥508/人',
-        duration: '8h',
-        count: 4,
-        timeline: [
-          {
-            time: '14:00',
-            icon: '☕',
-            title: '集合·下午茶',
-            subtitle: '%Arabica 咖啡（湖滨银泰）',
-            tags: [{ text: '★ 4.6', type: 'rating' }, { text: '¥50/人', type: 'price' }],
-            detail: '经典网红咖啡店，适合碰面集合。推荐西班牙拿铁和抹茶拿铁。'
-          },
-          {
-            time: '15:00',
-            icon: '🔐',
-            title: '谜巢·沉浸式密室',
-            subtitle: '「时间旅行者」主题，90分钟',
-            tags: [{ text: '★ 4.9', type: 'rating' }, { text: '¥198/人', type: 'price' }, { text: '已预约', type: 'booked' }],
-            detail: '杭州评分最高的沉浸式密室，含NPC互动、机关道具，5人组队最佳。难度★★★★☆。'
-          },
-          {
-            time: '17:30',
-            icon: '🍲',
-            title: '大龙燚火锅',
-            subtitle: '成都老火锅，微辣~特辣可选',
-            tags: [{ text: '★ 4.7', type: 'rating' }, { text: '¥130/人', type: 'price' }],
-            detail: '密室出来正好饿了！推荐毛肚、鸭肠、酥肉三件套。可以点鸳鸯锅照顾不吃辣的朋友。'
-          },
-          {
-            time: '20:00',
-            icon: '🎵',
-            title: 'MAO Livehouse',
-            subtitle: '本周演出：杭州本地独立乐队',
-            tags: [{ text: '★ 4.5', type: 'rating' }, { text: '¥100/人', type: 'price' }],
-            detail: '杭州老牌Livehouse，氛围超好。演出约2小时，有吧台可以点酒。建议早到占前排位置。'
-          },
-          {
-            time: '22:30',
-            icon: '🏠',
-            title: '散场',
-            subtitle: '打车各自回家',
-            tags: [{ text: '约¥30/人', type: 'price' }],
-            detail: '周六晚高峰后打车方便，注意提前叫车。'
-          }
-        ]
-      },
-      {
-        name: '方案 B',
-        title: '🍜 美食探店局',
-        subtitle: '一路吃吃喝喝逛逛',
-        scores: { cost: 0.6, fun: 0.8, convenience: 0.9, fit: 0.85, uniqueness: 0.7 },
-        totalCost: '¥420/人',
-        duration: '7h',
-        count: 4,
-        timeline: [
-          {
-            time: '13:00',
-            icon: '🍜',
-            title: '奎元馆',
-            subtitle: '百年老字号，虾爆鳝面',
-            tags: [{ text: '★ 4.5', type: 'rating' }, { text: '¥40/人', type: 'price' }],
-            detail: '先来碗杭州老面开胃，奎元馆的虾爆鳝面是杭州美食名片。'
-          },
-          {
-            time: '14:30',
-            icon: '🍵',
-            title: '茶馆品茗',
-            subtitle: '青藤茶馆，品龙井·聊天',
-            tags: [{ text: '★ 4.7', type: 'rating' }, { text: '¥80/人', type: 'price' }],
-            detail: '包间可以安静聊天，最佳下午茶时光。配茶点心值得一试。'
-          },
-          {
-            time: '17:00',
-            icon: '🦞',
-            title: '胖哥俩肉蟹煲',
-            subtitle: '正餐大排档，一起动手吃蟹',
-            tags: [{ text: '★ 4.4', type: 'rating' }, { text: '¥120/人', type: 'price' }],
-            detail: '朋友聚会最适合一起动手的菜！配上冰啤酒，气氛拉满。'
-          },
-          {
-            time: '19:30',
-            icon: '🍸',
-            title: 'J.Boroski 酒吧',
-            subtitle: '无菜单调酒吧，隐藏入口',
-            tags: [{ text: '★ 4.8', type: 'rating' }, { text: '¥150/人', type: 'price' }],
-            detail: '杭州最有格调的隐藏酒吧，需要按门铃进入。调酒师会根据你的心情定制鸡尾酒。'
-          },
-          {
-            time: '22:00',
-            icon: '🏠',
-            title: '散场回家',
-            subtitle: '微醺回家，完美周末',
-            tags: [{ text: '请勿酒驾', type: 'status' }],
-            detail: '注意安全，打车回家。'
-          }
-        ]
-      },
-      {
-        name: '方案 C',
-        title: '🎨 文艺复兴日',
-        subtitle: '手作 + 展览 + 清吧',
-        scores: { cost: 0.65, fun: 0.75, convenience: 0.85, fit: 0.7, uniqueness: 0.85 },
-        totalCost: '¥380/人',
-        duration: '7h',
-        count: 4,
-        timeline: [
-          {
-            time: '13:00',
-            icon: '🎨',
-            title: '手工银饰DIY',
-            subtitle: '纯银戒指/手链制作体验',
-            tags: [{ text: '★ 4.8', type: 'rating' }, { text: '¥200/人', type: 'price' }],
-            detail: '每人可制作一枚纯银戒指，约2小时。适合朋友一起做对戒或友谊手链，超有纪念意义！'
-          },
-          {
-            time: '15:30',
-            icon: '🖼',
-            title: '中国美院美术馆',
-            subtitle: '当季展览：数字艺术新浪潮',
-            tags: [{ text: '★ 4.7', type: 'rating' }, { text: '免费', type: 'price' }],
-            detail: '象山校区的美术馆，建筑本身就是王澍大师作品。当季展览以数字交互艺术为主题。'
-          },
-          {
-            time: '17:30',
-            icon: '🍽',
-            title: '院子餐厅',
-            subtitle: '创意融合菜，庭院用餐',
-            tags: [{ text: '★ 4.6', type: 'rating' }, { text: '¥150/人', type: 'price' }],
-            detail: '就在美院附近的创意餐厅，融合中西料理，庭院环境很适合拍照打卡。'
-          },
-          {
-            time: '20:00',
-            icon: '🎶',
-            title: '酒球会',
-            subtitle: '独立音乐现场 + 精酿啤酒',
-            tags: [{ text: '★ 4.5', type: 'rating' }, { text: '¥80/人', type: 'price' }],
-            detail: '杭州独立音乐圣地，氛围自由松弛。精酿啤酒种类丰富，适合边听歌边聊天。'
-          },
-          {
-            time: '22:00',
-            icon: '🏠',
-            title: '散场',
-            subtitle: '带着手作纪念品回家',
-            tags: [{ text: '约¥30/人', type: 'price' }],
-            detail: '文艺满满的一天，银饰作品就是最好的纪念！'
-          }
-        ]
-      }
-    ]
+  setCenter(lng, lat, zoom) {
+    if (!this.map) return;
+    this.map.setZoomAndCenter(zoom || 13, [lng, lat]);
+  },
+
+  renderPlan(plan) {
+    if (!this.map) { this._pending = plan; return; }
+    this.clear();
+    const tl = plan.timeline || [];
+    const positions = [];
+    const colors = { transport: '#3182CE', dining: '#E53E3E', activity: '#38A169', rest: '#ECC94B' };
+
+    tl.forEach((item, idx) => {
+      if (!item.location) return;
+      const [lng, lat] = item.location.split(',').map(Number);
+      if (isNaN(lng) || isNaN(lat)) return;
+      positions.push([lng, lat]);
+
+      const color = colors[item.type || item.nodeType] || '#FF6B35';
+      const marker = new AMap.Marker({
+        position: [lng, lat],
+        content: `<div style="background:${color};color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)">${idx + 1}</div>`,
+        offset: new AMap.Pixel(-13, -13),
+      });
+      marker.on('click', () => {
+        const html = `<div style="padding:8px;min-width:200px;font-size:13px">
+          <strong>${item.icon || ''} ${item.title}</strong><br>
+          <span style="color:#718096">${item.subtitle || ''}</span>
+          ${item.rating ? `<div style="margin-top:4px">⭐ 高德 ${item.rating}${item.dianping_rating ? ` · 点评 ${item.dianping_rating}` : ''}${item.meituan_rating ? ` · 美团 ${item.meituan_rating}` : ''}</div>` : ''}
+          ${item.cost ? `<div>💰 ¥${item.cost}/人</div>` : ''}
+          ${item.business_area ? `<div>📍 ${item.business_area}</div>` : ''}
+        </div>`;
+        this.infoWindow.setContent(html);
+        this.infoWindow.open(this.map, [lng, lat]);
+      });
+      marker.setMap(this.map);
+      this.markers.push(marker);
+    });
+
+    if (positions.length >= 2) {
+      const line = new AMap.Polyline({
+        path: positions, strokeColor: '#FF6B35', strokeWeight: 4,
+        strokeOpacity: 0.7, strokeStyle: 'solid',
+        showDir: true, dirColor: '#fff',
+      });
+      line.setMap(this.map);
+      this.polylines.push(line);
+    }
+    if (positions.length > 0) this.map.setFitView(this.markers, false, [60, 60, 60, 60]);
+    const mapSection = $('.plan-map-section');
+    if (mapSection) mapSection.style.display = '';
+  },
+
+  highlightNode(idx) {
+    if (!this.map || !this.markers[idx]) return;
+    const pos = this.markers[idx].getPosition();
+    this.map.setZoomAndCenter(15, pos);
+    this.markers[idx].emit('click', { target: this.markers[idx] });
+  },
+
+  clear() {
+    this.markers.forEach(m => m.setMap(null));
+    this.polylines.forEach(p => p.setMap(null));
+    this.markers = [];
+    this.polylines = [];
+    if (this.infoWindow) this.infoWindow.close();
   }
 };
 
-// ─── 雷达图绘制 ───
+/* ─── Radar Chart ─── */
 const RADAR_LABELS = ['花费', '趣味', '便捷', '适合度', '特色'];
 const PLAN_COLORS = [
   { fill: 'rgba(255,107,53,0.18)', stroke: '#FF6B35' },
   { fill: 'rgba(43,108,176,0.18)', stroke: '#2B6CB0' },
-  { fill: 'rgba(56,161,105,0.18)', stroke: '#38A169' }
+  { fill: 'rgba(56,161,105,0.18)', stroke: '#38A169' },
 ];
 
-function drawRadarChart(canvasEl, allScores, activePlanIdx) {
-  const ctx = canvasEl.getContext('2d');
-  const W = canvasEl.width;
-  const H = canvasEl.height;
-  const cx = W / 2;
-  const cy = H / 2;
-  const maxR = Math.min(cx, cy) - 36;
+function drawRadarChart(canvas, allScores, activeIdx) {
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 30;
+  ctx.clearRect(0, 0, W, H);
   const n = RADAR_LABELS.length;
   const angleStep = (Math.PI * 2) / n;
-  const startAngle = -Math.PI / 2;
 
-  ctx.clearRect(0, 0, W, H);
-
-  const levels = 4;
-  for (let lv = 1; lv <= levels; lv++) {
-    const r = (maxR / levels) * lv;
+  for (let ring = 1; ring <= 5; ring++) {
+    const r = (R / 5) * ring;
     ctx.beginPath();
     for (let i = 0; i <= n; i++) {
-      const a = startAngle + angleStep * (i % n);
-      const x = cx + r * Math.cos(a);
-      const y = cy + r * Math.sin(a);
+      const a = i * angleStep - Math.PI / 2;
+      const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
-    ctx.closePath();
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
-    ctx.lineWidth = 0.7;
+    ctx.strokeStyle = 'rgba(160,174,192,0.25)';
+    ctx.lineWidth = 1;
     ctx.stroke();
   }
 
   for (let i = 0; i < n; i++) {
-    const a = startAngle + angleStep * i;
-    const x = cx + maxR * Math.cos(a);
-    const y = cy + maxR * Math.sin(a);
+    const a = i * angleStep - Math.PI / 2;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.lineTo(x, y);
-    ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
-    ctx.lineWidth = 0.5;
+    ctx.lineTo(cx + R * Math.cos(a), cy + R * Math.sin(a));
+    ctx.strokeStyle = 'rgba(160,174,192,0.3)';
     ctx.stroke();
 
-    const labelR = maxR + 18;
-    const lx = cx + labelR * Math.cos(a);
-    const ly = cy + labelR * Math.sin(a);
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim();
-    ctx.font = '12px -apple-system, "PingFang SC", sans-serif';
+    const lx = cx + (R + 18) * Math.cos(a), ly = cy + (R + 18) * Math.sin(a);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#718096';
+    ctx.font = '12px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(RADAR_LABELS[i], lx, ly);
   }
 
-  allScores.forEach((scores, idx) => {
-    const values = [scores.cost, scores.fun, scores.convenience, scores.fit, scores.uniqueness];
-    const color = PLAN_COLORS[idx];
-    const isActive = idx === activePlanIdx;
-
+  allScores.forEach((scores, pIdx) => {
+    if (!scores || scores.length < n) return;
+    const c = PLAN_COLORS[pIdx] || PLAN_COLORS[0];
     ctx.beginPath();
-    values.forEach((v, i) => {
-      const a = startAngle + angleStep * i;
-      const r = maxR * v;
-      const x = cx + r * Math.cos(a);
-      const y = cy + r * Math.sin(a);
+    for (let i = 0; i <= n; i++) {
+      const idx = i % n;
+      const val = Math.max(0, Math.min(1, scores[idx]));
+      const a = idx * angleStep - Math.PI / 2;
+      const x = cx + R * val * Math.cos(a), y = cy + R * val * Math.sin(a);
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
+    }
     ctx.closePath();
-    ctx.fillStyle = color.fill;
+    ctx.fillStyle = c.fill;
     ctx.fill();
-    ctx.strokeStyle = color.stroke;
-    ctx.lineWidth = isActive ? 2.5 : 1.5;
-    ctx.globalAlpha = isActive ? 1 : 0.5;
+    ctx.strokeStyle = c.stroke;
+    ctx.lineWidth = pIdx === activeIdx ? 2.5 : 1.2;
+    ctx.globalAlpha = pIdx === activeIdx ? 1 : 0.5;
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    if (isActive) {
-      values.forEach((v, i) => {
-        const a = startAngle + angleStep * i;
-        const r = maxR * v;
-        const x = cx + r * Math.cos(a);
-        const y = cy + r * Math.sin(a);
+    if (pIdx === activeIdx) {
+      for (let i = 0; i < n; i++) {
+        const val = Math.max(0, Math.min(1, scores[i]));
+        const a = i * angleStep - Math.PI / 2;
+        const x = cx + R * val * Math.cos(a), y = cy + R * val * Math.sin(a);
         ctx.beginPath();
         ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fillStyle = color.stroke;
+        ctx.fillStyle = c.stroke;
         ctx.fill();
-      });
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
     }
   });
 }
 
-function renderRadarLegend(plans) {
-  const legend = $('#radarLegend');
-  legend.innerHTML = '';
-  plans.forEach((plan, idx) => {
-    const item = h('div', { className: 'legend-item' }, [
-      h('span', { className: 'legend-dot', style: { background: PLAN_COLORS[idx].stroke } }),
-      h('span', { textContent: plan.name })
-    ]);
-    legend.appendChild(item);
-  });
-}
+/* ─── 6 Prebuilt Cases ─── */
+const DEMO_CASES = {
+  'family-park': {
+    id: 'family-park',
+    userMessage: '今天下午带娃出去玩，孩子5岁，老婆在减肥，别离家太远',
+    aiReply: '收到！正在为你规划「杭州·家庭温馨半日游」🎯 5岁萌娃+健康妈妈的完美下午',
+    agents: [
+      { name: 'Orchestrator', icon: '🎯', thinking: '解析意图：家庭亲子游，孩子5岁，妻子减肥需求，距离近，下午时段' },
+      { name: 'Context', icon: '📋', thinking: '杭州·晴天28°C·适合户外，定位：西湖区附近' },
+      { name: 'Dining', icon: '🍽', thinking: '搜索轻食/沙拉/杭帮菜餐厅，排除火锅烧烤类高热量，筛选有儿童椅的' },
+      { name: 'Activity', icon: '🎪', thinking: '搜索亲子乐园/公园/博物馆，筛选5岁适龄，排除需要长时间步行的' },
+      { name: 'Synthesizer', icon: '🧩', thinking: '生成3套差异化方案：公园慢游/博物馆探索/商圈一站式' },
+      { name: 'Critic', icon: '🔍', thinking: '方案A最优：亲子适配10/10，低卡餐厅满足减肥需求，距离合理' },
+    ],
+    plans: [
+      {
+        name: '亲子慢游', title: '🌈 西湖亲子慢游', subtitle: '轻松惬意·适合带小朋友',
+        scores: [0.85, 0.9, 0.8, 0.95, 0.7],
+        totalCost: '¥356', duration: '4h', count: 6,
+        timeline: [
+          { time: '14:00', icon: '🚗', title: '出发', subtitle: '滴滴快车·约15分钟', nodeType: 'transport', location: '120.155,30.260', cost: '18' },
+          { time: '14:15', icon: '🎪', title: '嘟嘟城儿童职业体验馆', subtitle: '适合3-8岁·角色扮演', nodeType: 'activity', location: '120.163,30.258', rating: '4.6', dianping_rating: '4.5', meituan_rating: '4.6', cost: '196', business_area: '来福士' },
+          { time: '16:15', icon: '🚶', title: '步行前往', subtitle: '步行约10分钟', nodeType: 'transport', location: '120.162,30.257' },
+          { time: '16:25', icon: '🍽', title: 'gaga鲜语(来福士店)', subtitle: '轻食沙拉·有低卡选项', nodeType: 'dining', location: '120.163,30.258', rating: '4.5', dianping_rating: '4.4', meituan_rating: '4.5', cost: '62', business_area: '来福士' },
+          { time: '17:25', icon: '🌅', title: '来福士天台花园', subtitle: '免费·看日落·拍照', nodeType: 'activity', location: '120.163,30.258', rating: '4.3', cost: '0', business_area: '来福士' },
+          { time: '17:45', icon: '🚗', title: '返程回家', subtitle: '滴滴快车·约15分钟', nodeType: 'transport', location: '120.155,30.260', cost: '22' },
+        ],
+      },
+      {
+        name: '博物馆探索', title: '🏛 博物馆探索日', subtitle: '寓教于乐·培养好奇心',
+        scores: [0.9, 0.75, 0.85, 0.9, 0.8],
+        totalCost: '¥280', duration: '5h', count: 5,
+        timeline: [
+          { time: '13:30', icon: '🚇', title: '地铁出发', subtitle: '1号线→武林广场站', nodeType: 'transport', location: '120.167,30.276', cost: '4' },
+          { time: '14:00', icon: '🏛', title: '浙江自然博物馆', subtitle: '恐龙展厅·海洋馆·免费', nodeType: 'activity', location: '120.167,30.276', rating: '4.9', dianping_rating: '4.8', cost: '0', business_area: '武林广场' },
+          { time: '16:00', icon: '☕', title: 'Manner Coffee(武林)', subtitle: '手冲咖啡·有鲜榨果汁', nodeType: 'dining', location: '120.166,30.275', rating: '4.4', dianping_rating: '4.3', cost: '28', business_area: '武林广场' },
+          { time: '16:30', icon: '🍽', title: '新白鹿(武林店)', subtitle: '杭帮菜·有沙拉·性价比高', nodeType: 'dining', location: '120.168,30.275', rating: '4.5', dianping_rating: '4.6', meituan_rating: '4.5', cost: '55', business_area: '武林广场' },
+          { time: '18:00', icon: '🚇', title: '地铁返程', subtitle: '1号线直达', nodeType: 'transport', location: '120.167,30.276', cost: '4' },
+        ],
+      },
+      {
+        name: '西溪湿地', title: '🌿 西溪湿地野趣', subtitle: '自然探索·湿地泛舟',
+        scores: [0.75, 0.95, 0.65, 0.85, 0.9],
+        totalCost: '¥420', duration: '4.5h', count: 5,
+        timeline: [
+          { time: '13:30', icon: '🚗', title: '打车出发', subtitle: '约25分钟到西溪湿地', nodeType: 'transport', location: '120.062,30.265', cost: '35' },
+          { time: '14:00', icon: '🛶', title: '西溪湿地摇橹船', subtitle: '一家三口泛舟·赏荷花', nodeType: 'activity', location: '120.062,30.268', rating: '4.7', dianping_rating: '4.6', cost: '100', business_area: '西溪湿地' },
+          { time: '15:30', icon: '🌾', title: '河渚街散步', subtitle: '古街小吃·手工体验', nodeType: 'activity', location: '120.065,30.270', rating: '4.4', cost: '0', business_area: '西溪湿地' },
+          { time: '16:30', icon: '🍽', title: '西溪花间堂·餐厅', subtitle: '农家菜·有素菜·环境好', nodeType: 'dining', location: '120.064,30.269', rating: '4.5', dianping_rating: '4.3', cost: '85', business_area: '西溪湿地' },
+          { time: '18:00', icon: '🚗', title: '返程', subtitle: '打车约25分钟', nodeType: 'transport', location: '120.155,30.260', cost: '35' },
+        ],
+      },
+    ],
+  },
 
-// ─── 时间线渲染 ───
+  'friends-gathering': {
+    id: 'friends-gathering',
+    userMessage: '周六4个朋友聚一聚，吃喝玩乐来点新奇的',
+    aiReply: '好嘞！4人派对安排上了 🎉 为你打造「杭州·朋友聚会嗨玩局」',
+    agents: [
+      { name: 'Orchestrator', icon: '🎯', thinking: '解析：朋友聚会4人，周六全天，要求新奇刺激' },
+      { name: 'Context', icon: '📋', thinking: '杭州·周六·晴，适合户外+室内混搭' },
+      { name: 'Dining', icon: '🍽', thinking: '搜索特色火锅/新奇餐厅/精酿啤酒吧' },
+      { name: 'Activity', icon: '🎪', thinking: '搜索密室逃脱/剧本杀/LiveHouse/轰趴' },
+      { name: 'Synthesizer', icon: '🧩', thinking: '生成3套：密室+火锅夜/美食探店/文艺复兴日' },
+      { name: 'Critic', icon: '🔍', thinking: '方案均通过，密室方案趣味度最高' },
+    ],
+    plans: [
+      {
+        name: '密室冒险夜', title: '🔮 密室冒险+火锅夜', subtitle: '刺激解谜·辣到飞起',
+        scores: [0.7, 0.95, 0.75, 0.85, 0.95],
+        totalCost: '¥280/人', duration: '6h', count: 5,
+        timeline: [
+          { time: '14:00', icon: '🚇', title: '地铁集合', subtitle: '凤起路站B口·步行5分钟', nodeType: 'transport', location: '120.170,30.268' },
+          { time: '14:15', icon: '🔮', title: '迷境密室逃脱', subtitle: '「午夜博物馆」主题·2h', nodeType: 'activity', location: '120.172,30.268', rating: '4.8', dianping_rating: '4.7', cost: '128', business_area: '凤起路' },
+          { time: '16:30', icon: '☕', title: '%Arabica(湖滨)', subtitle: '网红咖啡·拍照休息', nodeType: 'dining', location: '120.159,30.254', rating: '4.6', dianping_rating: '4.5', cost: '45', business_area: '湖滨银泰' },
+          { time: '17:30', icon: '🍲', title: '巴奴毛肚火锅', subtitle: '毛肚火锅·4人套餐', nodeType: 'dining', location: '120.162,30.257', rating: '4.7', dianping_rating: '4.6', meituan_rating: '4.7', cost: '120', business_area: '来福士' },
+          { time: '19:30', icon: '🎵', title: 'MAO Livehouse', subtitle: '独立乐队现场·今晚有演出', nodeType: 'activity', location: '120.175,30.271', rating: '4.5', dianping_rating: '4.4', cost: '80', business_area: '庆春路' },
+        ],
+      },
+      {
+        name: '美食探店', title: '🍜 美食探店局', subtitle: '从早吃到晚·杭州味道',
+        scores: [0.6, 0.85, 0.9, 0.8, 0.8],
+        totalCost: '¥200/人', duration: '5h', count: 5,
+        timeline: [
+          { time: '14:00', icon: '🚗', title: '打车到河坊街', subtitle: '约15分钟', nodeType: 'transport', location: '120.167,30.249', cost: '15' },
+          { time: '14:20', icon: '🍡', title: '河坊街小吃', subtitle: '定胜糕·龙须糖·糖炒栗子', nodeType: 'dining', location: '120.167,30.249', rating: '4.3', cost: '30', business_area: '河坊街' },
+          { time: '15:30', icon: '🍵', title: '太极茶道', subtitle: '龙井茶品鉴·茶艺表演', nodeType: 'activity', location: '120.168,30.248', rating: '4.6', dianping_rating: '4.5', cost: '58', business_area: '河坊街' },
+          { time: '16:30', icon: '🍽', title: '知味观(河坊街总店)', subtitle: '杭帮菜·片儿川·东坡肉', nodeType: 'dining', location: '120.169,30.249', rating: '4.7', dianping_rating: '4.6', meituan_rating: '4.7', cost: '75', business_area: '河坊街' },
+          { time: '18:30', icon: '🍺', title: '斑马精酿', subtitle: 'IPA+小食拼盘', nodeType: 'dining', location: '120.174,30.267', rating: '4.5', dianping_rating: '4.4', cost: '65', business_area: '凤起路' },
+        ],
+      },
+      {
+        name: '文艺复兴日', title: '🎨 文艺复兴日', subtitle: '看展+书店+精酿',
+        scores: [0.75, 0.8, 0.8, 0.75, 0.9],
+        totalCost: '¥220/人', duration: '6h', count: 5,
+        timeline: [
+          { time: '13:30', icon: '🚗', title: '打车集合', subtitle: '中国美院象山', nodeType: 'transport', location: '120.123,30.211', cost: '25' },
+          { time: '14:00', icon: '🎨', title: '中国美术学院民艺博物馆', subtitle: '隈研吾设计·免费', nodeType: 'activity', location: '120.123,30.211', rating: '4.8', dianping_rating: '4.7', cost: '0', business_area: '象山' },
+          { time: '15:30', icon: '📚', title: '钟书阁(滨江)', subtitle: '最美书店·打卡拍照', nodeType: 'activity', location: '120.190,30.210', rating: '4.7', dianping_rating: '4.6', cost: '0', business_area: '滨江' },
+          { time: '17:00', icon: '🍽', title: '弄堂里(南宋御街)', subtitle: '杭帮菜·环境文艺', nodeType: 'dining', location: '120.165,30.250', rating: '4.6', dianping_rating: '4.5', meituan_rating: '4.5', cost: '85', business_area: '南宋御街' },
+          { time: '19:00', icon: '🍻', title: '走嗨精酿(南山路)', subtitle: '西湖边精酿·夜景绝佳', nodeType: 'dining', location: '120.148,30.240', rating: '4.5', dianping_rating: '4.4', cost: '70', business_area: '南山路' },
+        ],
+      },
+    ],
+  },
+
+  'couple-date': {
+    id: 'couple-date',
+    userMessage: '和女朋友约会，找个浪漫有氛围的地方逛逛吃吃',
+    aiReply: '浪漫约会安排！💑 为你准备了「杭州·浪漫约会日」',
+    agents: [
+      { name: 'Orchestrator', icon: '🎯', thinking: '解析：情侣约会，浪漫氛围，逛+吃' },
+      { name: 'Context', icon: '📋', thinking: '杭州·晴·日落19:15，适合安排夕阳环节' },
+      { name: 'Dining', icon: '🍽', thinking: '搜索西餐/日料/法餐等浪漫餐厅，有窗景的优先' },
+      { name: 'Activity', icon: '🎪', thinking: '搜索西湖/南山路/文艺街区等约会地标' },
+      { name: 'Synthesizer', icon: '🧩', thinking: '生成3套：西湖漫步/南山路文艺/钱塘江夜景' },
+      { name: 'Critic', icon: '🔍', thinking: '氛围感校验通过，路线流畅度OK' },
+    ],
+    plans: [
+      {
+        name: '西湖浪漫', title: '🌸 西湖浪漫漫步', subtitle: '断桥·白堤·日落·法餐',
+        scores: [0.6, 0.85, 0.8, 0.95, 0.85],
+        totalCost: '¥680', duration: '6h', count: 5,
+        timeline: [
+          { time: '14:00', icon: '🚗', title: '打车到断桥', subtitle: '约20分钟', nodeType: 'transport', location: '120.152,30.261', cost: '25' },
+          { time: '14:30', icon: '🌸', title: '断桥→白堤漫步', subtitle: '西湖十景·拍照胜地', nodeType: 'activity', location: '120.152,30.261', rating: '4.9', cost: '0', business_area: '西湖风景区' },
+          { time: '16:00', icon: '☕', title: '湖畔居茶楼', subtitle: '西湖边品茶·看日落', nodeType: 'dining', location: '120.148,30.256', rating: '4.6', dianping_rating: '4.5', cost: '88', business_area: '湖滨' },
+          { time: '17:30', icon: '🌅', title: '苏堤看日落', subtitle: '19:15日落·最佳观赏点', nodeType: 'activity', location: '120.139,30.245', rating: '4.8', cost: '0', business_area: '苏堤' },
+          { time: '19:30', icon: '🍽', title: '西湖一号法餐厅', subtitle: '湖景法餐·红酒牛排', nodeType: 'dining', location: '120.147,30.253', rating: '4.7', dianping_rating: '4.6', meituan_rating: '4.7', cost: '350', business_area: '湖滨28' },
+        ],
+      },
+      {
+        name: '南山路文艺', title: '🎭 南山路文艺之旅', subtitle: '看展·咖啡·书店·西餐',
+        scores: [0.7, 0.8, 0.85, 0.9, 0.9],
+        totalCost: '¥520', duration: '5.5h', count: 5,
+        timeline: [
+          { time: '14:00', icon: '🚗', title: '打车到南山路', subtitle: '约15分钟', nodeType: 'transport', location: '120.150,30.240', cost: '20' },
+          { time: '14:20', icon: '🎨', title: '中国美术馆(南山路)', subtitle: '当代艺术展·免费', nodeType: 'activity', location: '120.150,30.240', rating: '4.6', dianping_rating: '4.5', cost: '0', business_area: '南山路' },
+          { time: '15:30', icon: '📚', title: '纯真年代书吧', subtitle: '湖景书店·文青打卡地', nodeType: 'activity', location: '120.149,30.239', rating: '4.7', dianping_rating: '4.6', cost: '45', business_area: '南山路' },
+          { time: '17:00', icon: '🍽', title: '绿茶餐厅(龙井路)', subtitle: '杭帮菜·环境清幽', nodeType: 'dining', location: '120.131,30.246', rating: '4.5', dianping_rating: '4.4', meituan_rating: '4.5', cost: '75', business_area: '龙井路' },
+          { time: '19:00', icon: '🌃', title: '西湖音乐喷泉', subtitle: '免费·光影秀·19:30开始', nodeType: 'activity', location: '120.153,30.252', rating: '4.6', cost: '0', business_area: '湖滨' },
+        ],
+      },
+      {
+        name: '钱塘夜景', title: '🌃 钱塘江夜景约会', subtitle: '日料·灯光秀·江景',
+        scores: [0.55, 0.9, 0.7, 0.85, 0.95],
+        totalCost: '¥750', duration: '5h', count: 4,
+        timeline: [
+          { time: '16:00', icon: '🚗', title: '打车到钱江新城', subtitle: '约25分钟', nodeType: 'transport', location: '120.212,30.245', cost: '30' },
+          { time: '16:30', icon: '🏙', title: '城市阳台', subtitle: '钱塘江观景·日落', nodeType: 'activity', location: '120.212,30.245', rating: '4.5', cost: '0', business_area: '钱江新城' },
+          { time: '18:00', icon: '🍣', title: '板前寿司(万象城)', subtitle: 'Omakase·料理精致', nodeType: 'dining', location: '120.215,30.248', rating: '4.8', dianping_rating: '4.7', meituan_rating: '4.7', cost: '280', business_area: '钱江新城' },
+          { time: '20:00', icon: '🌃', title: '钱塘江灯光秀', subtitle: '两岸LED·免费', nodeType: 'activity', location: '120.212,30.244', rating: '4.7', cost: '0', business_area: '钱江新城' },
+        ],
+      },
+    ],
+  },
+
+  'solo-relax': {
+    id: 'solo-relax',
+    userMessage: '一个人想找个安静地方待一会儿',
+    aiReply: '给自己一段安静时光 🧘 为你规划「杭州·独处时光」',
+    agents: [
+      { name: 'Orchestrator', icon: '🎯', thinking: '解析：独处/安静/放松，一人，时间灵活' },
+      { name: 'Context', icon: '📋', thinking: '杭州·晴·适合户外放空' },
+      { name: 'Dining', icon: '🍽', thinking: '搜索安静咖啡馆/茶室/独食友好餐厅' },
+      { name: 'Activity', icon: '🎪', thinking: '搜索书店/公园/寺庙/茶园等安静场所' },
+      { name: 'Synthesizer', icon: '🧩', thinking: '生成：龙井问茶/书店咖啡/运河漫步' },
+      { name: 'Critic', icon: '🔍', thinking: '所有方案噪音低、人流少，适合独处' },
+    ],
+    plans: [
+      {
+        name: '龙井问茶', title: '🍵 龙井问茶独处', subtitle: '茶园·寺院·远离喧嚣',
+        scores: [0.8, 0.7, 0.6, 0.95, 0.85],
+        totalCost: '¥180', duration: '4h', count: 4,
+        timeline: [
+          { time: '14:00', icon: '🚗', title: '打车到龙井村', subtitle: '约30分钟', nodeType: 'transport', location: '120.115,30.229', cost: '35' },
+          { time: '14:30', icon: '🍵', title: '龙井茶园散步', subtitle: '茶田小径·远眺山景', nodeType: 'activity', location: '120.115,30.229', rating: '4.8', cost: '0', business_area: '龙井' },
+          { time: '15:30', icon: '☕', title: '龙井草堂', subtitle: '茶室·龙井茶+点心', nodeType: 'dining', location: '120.117,30.228', rating: '4.6', dianping_rating: '4.5', cost: '68', business_area: '龙井' },
+          { time: '17:00', icon: '🏯', title: '法喜寺', subtitle: '千年古刹·静心', nodeType: 'activity', location: '120.099,30.230', rating: '4.7', dianping_rating: '4.6', cost: '0', business_area: '天竺路' },
+        ],
+      },
+      {
+        name: '书店咖啡', title: '📖 书店咖啡之旅', subtitle: '阅读·发呆·独享下午',
+        scores: [0.85, 0.65, 0.9, 0.9, 0.75],
+        totalCost: '¥120', duration: '3.5h', count: 3,
+        timeline: [
+          { time: '14:00', icon: '📚', title: '晓风书屋(体育场路)', subtitle: '老牌独立书店·安静', nodeType: 'activity', location: '120.170,30.272', rating: '4.6', dianping_rating: '4.5', cost: '0', business_area: '体育场路' },
+          { time: '15:30', icon: '☕', title: 'M Stand(武林)', subtitle: '设计感咖啡馆·有插座', nodeType: 'dining', location: '120.166,30.274', rating: '4.5', dianping_rating: '4.4', cost: '42', business_area: '武林广场' },
+          { time: '17:00', icon: '🍽', title: '面条铺(武林路)', subtitle: '一人食友好·葱油拌面', nodeType: 'dining', location: '120.164,30.272', rating: '4.4', cost: '32', business_area: '武林路' },
+        ],
+      },
+      {
+        name: '运河漫步', title: '🚶 运河漫步', subtitle: '京杭运河·慢节奏',
+        scores: [0.9, 0.75, 0.7, 0.85, 0.8],
+        totalCost: '¥95', duration: '3h', count: 3,
+        timeline: [
+          { time: '15:00', icon: '🚶', title: '大兜路历史街区', subtitle: '运河边老房子·安静', nodeType: 'activity', location: '120.148,30.290', rating: '4.5', cost: '0', business_area: '大兜路' },
+          { time: '16:00', icon: '☕', title: '运河边咖啡馆', subtitle: '户外座·看船来船往', nodeType: 'dining', location: '120.147,30.292', rating: '4.3', cost: '38', business_area: '大兜路' },
+          { time: '17:00', icon: '🍜', title: '拱墅小吃', subtitle: '片儿川·简单一餐', nodeType: 'dining', location: '120.146,30.293', rating: '4.4', cost: '25', business_area: '大兜路' },
+        ],
+      },
+    ],
+  },
+
+  'rainy-indoor': {
+    id: 'rainy-indoor',
+    userMessage: '下雨了，找个室内活动打发时间',
+    aiReply: '雨天也精彩！🌧️ 为你安排「杭州·雨天室内好去处」',
+    agents: [
+      { name: 'Orchestrator', icon: '🎯', thinking: '解析：雨天·室内活动·打发时间·一人或朋友' },
+      { name: 'Context', icon: '📋', thinking: '杭州·中雨·22°C·纯室内方案' },
+      { name: 'Dining', icon: '🍽', thinking: '搜索商场内餐厅/火锅/下午茶' },
+      { name: 'Activity', icon: '🎪', thinking: '搜索商场/电影院/博物馆/温泉/密室' },
+      { name: 'Synthesizer', icon: '🧩', thinking: '生成：商场一日/博物馆+影院/温泉spa' },
+      { name: 'Critic', icon: '🔍', thinking: '全部室内，无天气风险' },
+    ],
+    plans: [
+      {
+        name: '商场探索', title: '🏬 商场一日游', subtitle: '逛吃逛吃·雨天不愁',
+        scores: [0.7, 0.8, 0.95, 0.8, 0.65],
+        totalCost: '¥350', duration: '5h', count: 4,
+        timeline: [
+          { time: '13:00', icon: '🚇', title: '地铁到湖滨银泰', subtitle: '龙翔桥站直达', nodeType: 'transport', location: '120.160,30.255', cost: '4' },
+          { time: '13:30', icon: '🍽', title: '西贝莜面村(银泰)', subtitle: '午餐·家常菜', nodeType: 'dining', location: '120.160,30.255', rating: '4.5', dianping_rating: '4.4', meituan_rating: '4.5', cost: '75', business_area: '湖滨银泰' },
+          { time: '14:30', icon: '🎬', title: '百美汇影城', subtitle: '看新片·VIP厅', nodeType: 'activity', location: '120.161,30.256', rating: '4.3', cost: '60', business_area: '湖滨银泰' },
+          { time: '17:00', icon: '🧋', title: '喜茶(湖滨)', subtitle: '奶茶+甜品·逛街休息', nodeType: 'dining', location: '120.160,30.254', rating: '4.4', dianping_rating: '4.3', cost: '35', business_area: '湖滨银泰' },
+        ],
+      },
+      {
+        name: '博物馆+影院', title: '🏛 博物馆+影院', subtitle: '知识+娱乐·充实一天',
+        scores: [0.8, 0.75, 0.85, 0.75, 0.8],
+        totalCost: '¥220', duration: '5h', count: 4,
+        timeline: [
+          { time: '13:00', icon: '🚗', title: '打车到浙博', subtitle: '约20分钟', nodeType: 'transport', location: '120.148,30.242', cost: '20' },
+          { time: '13:30', icon: '🏛', title: '浙江省博物馆(孤山)', subtitle: '免费·越王勾践剑', nodeType: 'activity', location: '120.148,30.255', rating: '4.8', dianping_rating: '4.7', cost: '0', business_area: '孤山' },
+          { time: '15:30', icon: '☕', title: '星巴克臻选(天目里)', subtitle: '设计空间·雨天发呆', nodeType: 'dining', location: '120.135,30.282', rating: '4.5', dianping_rating: '4.4', cost: '55', business_area: '天目里' },
+          { time: '17:00', icon: '🎬', title: '天目里·百美汇', subtitle: '文艺片放映', nodeType: 'activity', location: '120.135,30.282', rating: '4.4', cost: '45', business_area: '天目里' },
+        ],
+      },
+      {
+        name: '温泉放松', title: '♨️ 温泉spa放松', subtitle: '泡汤·按摩·彻底放松',
+        scores: [0.5, 0.85, 0.7, 0.9, 0.75],
+        totalCost: '¥450', duration: '4h', count: 3,
+        timeline: [
+          { time: '14:00', icon: '🚗', title: '打车出发', subtitle: '约30分钟', nodeType: 'transport', location: '120.030,30.220', cost: '40' },
+          { time: '14:30', icon: '♨️', title: '杭州临安湍口温泉', subtitle: '露天温泉·含自助餐', nodeType: 'activity', location: '120.030,30.220', rating: '4.6', dianping_rating: '4.5', meituan_rating: '4.5', cost: '268', business_area: '临安' },
+          { time: '18:00', icon: '🚗', title: '返程', subtitle: '约30分钟', nodeType: 'transport', location: '120.155,30.260', cost: '40' },
+        ],
+      },
+    ],
+  },
+
+  'beijing-culture': {
+    id: 'beijing-culture',
+    userMessage: '在北京，想来个文化探索日',
+    aiReply: '首都文化之旅安排！🏛️ 为你规划「北京·文化探索日」',
+    agents: [
+      { name: 'Orchestrator', icon: '🎯', thinking: '解析：北京·文化探索·一日游·含吃饭' },
+      { name: 'Context', icon: '📋', thinking: '北京·晴·26°C·故宫需预约' },
+      { name: 'Dining', icon: '🍽', thinking: '搜索北京特色餐厅：烤鸭/炸酱面/涮羊肉' },
+      { name: 'Activity', icon: '🎪', thinking: '搜索故宫/胡同/798/颐和园等文化地标' },
+      { name: 'Synthesizer', icon: '🧩', thinking: '生成：故宫+胡同/798+三里屯/颐和园+清华' },
+      { name: 'Critic', icon: '🔍', thinking: '故宫方案需预约提醒已添加' },
+    ],
+    plans: [
+      {
+        name: '故宫胡同', title: '🏯 故宫+胡同深度游', subtitle: '皇城根下·老北京味道',
+        scores: [0.65, 0.9, 0.75, 0.85, 0.9],
+        totalCost: '¥420', duration: '7h', count: 6,
+        timeline: [
+          { time: '09:00', icon: '🚇', title: '地铁到天安门东', subtitle: '1号线', nodeType: 'transport', location: '116.403,39.915', cost: '5' },
+          { time: '09:30', icon: '🏯', title: '故宫博物院', subtitle: '需提前预约·建议3h', nodeType: 'activity', location: '116.397,39.918', rating: '4.9', dianping_rating: '4.8', cost: '60', business_area: '东城区' },
+          { time: '12:30', icon: '🍽', title: '四季民福烤鸭(故宫店)', subtitle: '排队名店·片皮鸭', nodeType: 'dining', location: '116.403,39.920', rating: '4.7', dianping_rating: '4.6', meituan_rating: '4.7', cost: '120', business_area: '东城区' },
+          { time: '14:00', icon: '🏔', title: '景山公园', subtitle: '俯瞰故宫全景·¥2门票', nodeType: 'activity', location: '116.396,39.925', rating: '4.7', cost: '2', business_area: '景山' },
+          { time: '15:00', icon: '🏘', title: '南锣鼓巷', subtitle: '胡同文化·文创小店', nodeType: 'activity', location: '116.403,39.937', rating: '4.4', dianping_rating: '4.3', cost: '0', business_area: '南锣鼓巷' },
+          { time: '17:00', icon: '🍜', title: '方砖厂69号炸酱面', subtitle: '老北京炸酱面·地道', nodeType: 'dining', location: '116.404,39.938', rating: '4.6', dianping_rating: '4.5', cost: '28', business_area: '南锣鼓巷' },
+        ],
+      },
+      {
+        name: '798艺术', title: '🎨 798+三里屯', subtitle: '当代艺术·潮流地标',
+        scores: [0.7, 0.85, 0.8, 0.75, 0.95],
+        totalCost: '¥380', duration: '6h', count: 5,
+        timeline: [
+          { time: '10:00', icon: '🚇', title: '地铁到望京南', subtitle: '14号线', nodeType: 'transport', location: '116.488,39.984', cost: '5' },
+          { time: '10:30', icon: '🎨', title: '798艺术区', subtitle: 'UCCA尤伦斯+画廊群', nodeType: 'activity', location: '116.494,39.984', rating: '4.6', dianping_rating: '4.5', cost: '60', business_area: '798' },
+          { time: '13:00', icon: '🍽', title: 'At Cafe(798)', subtitle: '园区内·西餐简餐', nodeType: 'dining', location: '116.493,39.983', rating: '4.3', cost: '85', business_area: '798' },
+          { time: '14:30', icon: '🚗', title: '打车到三里屯', subtitle: '约20分钟', nodeType: 'transport', location: '116.454,39.933', cost: '25' },
+          { time: '15:00', icon: '🏬', title: '三里屯太古里', subtitle: '潮牌+买手店+Red', nodeType: 'activity', location: '116.454,39.933', rating: '4.5', dianping_rating: '4.4', cost: '0', business_area: '三里屯' },
+        ],
+      },
+      {
+        name: '颐和园', title: '🌳 颐和园+清华园', subtitle: '皇家园林·学术氛围',
+        scores: [0.75, 0.8, 0.7, 0.8, 0.85],
+        totalCost: '¥250', duration: '6h', count: 5,
+        timeline: [
+          { time: '09:00', icon: '🚇', title: '地铁到北宫门', subtitle: '4号线', nodeType: 'transport', location: '116.273,39.993', cost: '5' },
+          { time: '09:30', icon: '🌳', title: '颐和园', subtitle: '昆明湖·长廊·十七孔桥', nodeType: 'activity', location: '116.273,39.993', rating: '4.8', dianping_rating: '4.7', cost: '30', business_area: '海淀区' },
+          { time: '12:30', icon: '🍽', title: '清华园食堂', subtitle: '学生食堂体验·实惠', nodeType: 'dining', location: '116.326,40.003', rating: '4.2', cost: '20', business_area: '清华大学' },
+          { time: '13:30', icon: '🏫', title: '清华大学(校园开放)', subtitle: '二校门·荷塘月色', nodeType: 'activity', location: '116.326,40.003', rating: '4.7', cost: '0', business_area: '清华大学' },
+          { time: '15:30', icon: '📚', title: '万圣书园', subtitle: '学术书店·知识殿堂', nodeType: 'activity', location: '116.318,39.990', rating: '4.6', dianping_rating: '4.5', cost: '0', business_area: '五道口' },
+        ],
+      },
+    ],
+  },
+};
+
+/* ─── Timeline Rendering ─── */
 function renderTimeline(plan) {
-  const timeline = $('#timeline');
-  timeline.innerHTML = '';
-  plan.timeline.forEach((item, idx) => {
-    const tags = (item.tags || []).map(tag => {
-      const typeClass = tag.type === 'rating' ? 'tag-rating'
-        : tag.type === 'price' ? 'tag-price'
-        : tag.type === 'booked' ? 'tag-booked'
-        : 'tag-status';
-      return h('span', { className: `timeline-tag ${typeClass}`, textContent: tag.text });
-    });
-
-    const card = h('div', { className: 'timeline-card', onClick: () => card.classList.toggle('expanded') }, [
-      h('div', { className: 'timeline-card-header' }, [
-        h('div', {}, [
-          h('div', { className: 'timeline-card-title' }, [
-            h('span', { className: 'activity-icon', textContent: item.icon }),
-            h('span', { textContent: item.title })
-          ]),
-          h('div', { className: 'timeline-card-subtitle', textContent: item.subtitle })
-        ]),
-        h('span', { className: 'timeline-time', textContent: item.time })
-      ]),
-      h('div', { className: 'timeline-tags' }, tags),
-      item.detail ? h('div', { className: 'timeline-card-detail', textContent: item.detail }) : null
-    ]);
-
-    const node = h('div', {
-      className: 'timeline-item',
-      style: { animationDelay: `${idx * 120}ms` }
-    }, [
-      h('div', { className: 'timeline-dot' }),
-      card
-    ]);
-
-    timeline.appendChild(node);
+  const container = $('#planTimeline');
+  if (!container) return;
+  container.innerHTML = '';
+  const tl = plan.timeline || [];
+  tl.forEach((item, idx) => {
+    const colors = { transport: '#3182CE', dining: '#E53E3E', activity: '#38A169', rest: '#ECC94B' };
+    const dotColor = colors[item.nodeType || item.type] || '#FF6B35';
+    const featured = parseFloat(item.rating) >= 4.5;
+    const el = document.createElement('div');
+    el.className = 'timeline-item';
+    el.style.animationDelay = `${idx * 0.1}s`;
+    el.innerHTML = `
+      <div class="timeline-dot" style="background:${dotColor}"></div>
+      <div class="timeline-card${featured ? ' featured' : ''}">
+        <div class="timeline-card-header">
+          <div class="timeline-title">${item.icon || '📌'} ${item.title}</div>
+          <div class="timeline-time">${item.time || ''}</div>
+        </div>
+        <div class="timeline-subtitle">${item.subtitle || ''}</div>
+        ${item.rating ? `<div class="rating-row">
+          <span class="rating-badge amap">⭐ 高德 ${item.rating}</span>
+          ${item.dianping_rating ? `<span class="rating-badge dianping">📝 点评 ${item.dianping_rating}</span>` : ''}
+          ${item.meituan_rating ? `<span class="rating-badge meituan">🟡 美团 ${item.meituan_rating}</span>` : ''}
+        </div>` : ''}
+        ${item.cost && item.cost !== '0' ? `<div class="cost-line">💰 ¥${item.cost}/人${item.business_area ? ` · 📍 ${item.business_area}` : ''}</div>` : (item.business_area ? `<div class="cost-line">📍 ${item.business_area}</div>` : '')}
+        ${featured ? '<span class="badge-featured">精选</span>' : ''}
+        ${item.nodeType !== 'transport' ? `<button class="swap-btn" onclick="swapNode(${idx},'${(item.title || '').replace(/'/g, '')}')">🔄 换</button>` : ''}
+      </div>`;
+    el.addEventListener('click', () => MapManager.highlightNode(idx));
+    container.appendChild(el);
   });
 }
 
-// ─── 方案面板渲染 ───
+/* ─── Plan Rendering ─── */
 function renderPlans(caseData) {
-  const plans = caseData.plans;
+  if (!caseData || !caseData.plans) return;
+  const planEmpty = $('#planEmpty');
+  const planContent = $('#planContent');
+  if (planEmpty) planEmpty.style.display = 'none';
+  if (planContent) planContent.style.display = '';
+
+  const tabs = $('#planTabs');
+  if (tabs) {
+    tabs.innerHTML = '';
+    caseData.plans.forEach((p, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'plan-tab' + (i === 0 ? ' active' : '');
+      btn.textContent = p.name || `方案${String.fromCharCode(65 + i)}`;
+      btn.onclick = () => switchPlan(i);
+      tabs.appendChild(btn);
+    });
+  }
+
   state.currentCase = caseData;
   state.currentPlanIdx = 0;
-
-  $('#canvasEmpty').style.display = 'none';
-  $('#canvasContent').style.display = 'block';
-
-  const tabsContainer = $('#planTabs');
-  tabsContainer.innerHTML = '';
-  const tabIcons = ['🌟', '💡', '🎯'];
-  plans.forEach((plan, idx) => {
-    const tab = h('button', {
-      className: `plan-tab${idx === 0 ? ' active' : ''}`,
-      dataset: { plan: String(idx) },
-      onClick: () => switchPlan(idx)
-    }, [
-      h('span', { className: 'tab-icon', textContent: tabIcons[idx] }),
-      ` ${plan.name}`
-    ]);
-    tabsContainer.appendChild(tab);
-  });
-
   renderPlanContent(0);
-  const allScores = plans.map(p => p.scores);
-  drawRadarChart($('#radarCanvas'), allScores, 0);
-  renderRadarLegend(plans);
 }
 
 function renderPlanContent(idx) {
   const plan = state.currentCase.plans[idx];
-  $('#planTitle').textContent = plan.title;
-  $('#planSubtitle').textContent = plan.subtitle;
-  $('#statCost').textContent = plan.totalCost;
-  $('#statDuration').textContent = plan.duration;
-  $('#statCount').textContent = `${plan.count} 项`;
+  if (!plan) return;
+
   renderTimeline(plan);
+  MapManager.renderPlan(plan);
+
+  const allScores = state.currentCase.plans.map(p => p.scores || []);
+  drawRadarChart($('#radarCanvas'), allScores, idx);
+
+  const stats = $('#planStats');
+  if (stats) {
+    stats.innerHTML = `
+      <div class="stat-item"><div class="stat-value">${plan.totalCost || '—'}</div><div class="stat-label">预计花费</div></div>
+      <div class="stat-item"><div class="stat-value">${plan.duration || '—'}</div><div class="stat-label">总时长</div></div>
+      <div class="stat-item"><div class="stat-value">${plan.count || (plan.timeline || []).length} 项</div><div class="stat-label">活动数</div></div>`;
+  }
 }
 
 function switchPlan(idx) {
   state.currentPlanIdx = idx;
   $$('.plan-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
   renderPlanContent(idx);
-  const allScores = state.currentCase.plans.map(p => p.scores);
-  drawRadarChart($('#radarCanvas'), allScores, idx);
 }
 
-// ─── 聊天功能 ───
-function addMessage(who, text, options = {}) {
-  const messages = $('#chatMessages');
-  const isUser = who === 'user';
-
-  const bubble = h('div', { className: 'message-bubble' });
-  const msgEl = h('div', { className: `message ${isUser ? 'user-message' : 'ai-message'}` }, [
-    h('div', { className: `avatar ${isUser ? 'user-avatar' : 'ai-avatar'}`, textContent: isUser ? '👤' : '🤖' }),
-    h('div', { className: 'message-content' }, [
-      bubble,
-      h('div', { className: 'message-time', textContent: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) })
-    ])
-  ]);
-
-  messages.appendChild(msgEl);
-  messages.scrollTop = messages.scrollHeight;
-
-  if (options.typing && !isUser) {
-    typewriterEffect(bubble, text);
-  } else {
-    bubble.innerHTML = text.replace(/\n/g, '<br>');
+/* ─── Chat Functions ─── */
+function addMessage(who, text, opts = {}) {
+  const welcomeBlock = $('#welcomeBlock');
+  if (welcomeBlock) welcomeBlock.style.display = 'none';
+  const list = $('#messageList');
+  if (!list) return;
+  const msg = document.createElement('div');
+  msg.className = `message ${who}`;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  if (opts.typing) {
+    bubble.innerHTML = '<span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>';
+    msg.appendChild(bubble);
+    list.appendChild(msg);
+    list.scrollTop = list.scrollHeight;
+    return { el: msg, bubble };
   }
-
-  return msgEl;
+  bubble.textContent = text;
+  msg.appendChild(bubble);
+  list.appendChild(msg);
+  list.scrollTop = list.scrollHeight;
+  return { el: msg, bubble };
 }
 
-async function typewriterEffect(el, text) {
-  el.classList.add('typing-cursor');
-  const lines = text.split('\n');
-  let html = '';
-
-  for (let li = 0; li < lines.length; li++) {
-    const line = lines[li];
-    for (let ci = 0; ci < line.length; ci++) {
-      html += line[ci];
-      el.innerHTML = html.replace(/\n/g, '<br>');
-      el.closest('.chat-messages')?.scrollTo({ top: el.closest('.chat-messages').scrollHeight, behavior: 'smooth' });
-      await sleep(18 + Math.random() * 12);
-    }
-    if (li < lines.length - 1) {
-      html += '\n';
-      el.innerHTML = html.replace(/\n/g, '<br>');
-      await sleep(60);
-    }
+async function typewriterEffect(bubble, text) {
+  bubble.textContent = '';
+  for (let i = 0; i < text.length; i++) {
+    bubble.textContent += text[i];
+    if (i % 3 === 0) await sleep(20);
   }
-
-  el.classList.remove('typing-cursor');
 }
 
-// ─── Agent 思维面板 ───
-const AGENT_PIPELINE_TEMPLATE = [
-  { name: 'Orchestrator', icon: '🎯' },
-  { name: 'Context', icon: '📋' },
-  { name: 'Activity', icon: '🎪' },
-  { name: 'Dining', icon: '🍽' },
-  { name: 'Transport', icon: '🚗' },
-  { name: 'Budget', icon: '💰' },
-  { name: 'Optimizer', icon: '✨' }
-];
-
-function renderPipeline(agentSteps, activeIdx) {
-  const pipeline = $('#pipeline');
-  pipeline.innerHTML = '';
-
-  agentSteps.forEach((agent, idx) => {
-    if (idx > 0) {
-      const arrow = h('div', { className: `pipeline-arrow${idx <= activeIdx ? ' active' : ''}` }, [
-        document.createTextNode('→')
-      ]);
-      pipeline.appendChild(arrow);
+/* ─── Agent Pipeline ─── */
+function renderPipeline(agents, activeIdx) {
+  const container = $('#thinkingPipeline');
+  if (!container) return;
+  container.innerHTML = '';
+  agents.forEach((agent, idx) => {
+    const node = document.createElement('div');
+    node.className = 'pipeline-node' + (idx < activeIdx ? ' done' : idx === activeIdx ? ' active' : '');
+    node.innerHTML = `<div class="pipeline-icon">${agent.icon}</div><div class="pipeline-name">${agent.name}</div>`;
+    if (idx < agents.length - 1) {
+      const arrow = document.createElement('div');
+      arrow.className = 'pipeline-arrow';
+      arrow.textContent = '→';
+      container.appendChild(node);
+      container.appendChild(arrow);
+    } else {
+      container.appendChild(node);
     }
-
-    const statusClass = idx < activeIdx ? 'completed'
-      : idx === activeIdx ? 'running'
-      : 'waiting';
-
-    const iconContent = idx < activeIdx ? '✓' : agent.icon;
-
-    const node = h('div', {
-      className: 'pipeline-node',
-      onClick: () => showAgentDetail(agent, idx, statusClass)
-    }, [
-      h('div', { className: `node-icon ${statusClass}`, textContent: iconContent }),
-      h('div', { className: 'node-name', textContent: agent.name })
-    ]);
-
-    pipeline.appendChild(node);
   });
 }
 
-function showAgentDetail(agent, idx, status) {
-  const detail = $('#agentDetail');
-  const statusText = status === 'completed' ? '✅ 已完成'
-    : status === 'running' ? '⏳ 运行中'
-    : '○ 等待中';
-
-  if (!agent.thinking) {
-    detail.innerHTML = `<div class="detail-placeholder">${agent.name} 尚未开始工作</div>`;
-    return;
-  }
-
-  detail.innerHTML = '';
-  const card = h('div', { className: 'agent-detail-card' }, [
-    h('div', { className: 'agent-detail-header' }, [
-      h('span', { textContent: `${agent.icon} ${agent.name}` }),
-      h('span', { textContent: statusText, style: { fontSize: '.78rem', fontWeight: '400', marginLeft: 'auto', color: 'var(--text-muted)' } })
-    ]),
-    h('div', { className: 'agent-detail-text', textContent: agent.thinking })
-  ]);
-  detail.appendChild(card);
+function showAgentDetail(agent) {
+  const detail = $('#thinkingDetail');
+  if (!detail) return;
+  detail.innerHTML = `<div class="thinking-card">
+    <div class="thinking-card-header">${agent.icon} ${agent.name}</div>
+    <div class="thinking-card-body">${agent.thinking}</div>
+  </div>`;
 }
 
 async function animatePipeline(agents) {
+  const panel = $('#thinkingPanel');
+  if (panel) panel.style.display = '';
+
   for (let i = 0; i < agents.length; i++) {
     renderPipeline(agents, i);
-    showAgentDetail(agents[i], i, 'running');
-    $('#thinkingBarStatus').textContent = `${agents[i].icon} ${agents[i].name} 正在思考...`;
-    await sleep(800 + Math.random() * 600);
+    showAgentDetail(agents[i]);
+    await sleep(500 + Math.random() * 400);
   }
   renderPipeline(agents, agents.length);
-  $('#thinkingBarStatus').textContent = '全部完成 ✅';
 }
 
-// ─── 展示模式 — 从API加载预建案例 ───
-async function playShowcaseFromAPI(caseId) {
-  if (state.isAnimating) return;
-  state.isAnimating = true;
-
-  const apiCase = await loadCaseDetail(caseId);
-  if (!apiCase) {
-    showToast('案例加载失败，请稍后重试');
-    state.isAnimating = false;
-    return;
-  }
-
-  const caseData = convertAPICaseToLocal(apiCase);
-  if (!caseData || !caseData.plans.length) {
-    showToast('案例数据格式异常');
-    state.isAnimating = false;
-    return;
-  }
-
-  $('#presetScenes').style.display = 'none';
-  $('#thinkingPanel').classList.add('expanded');
-  state.thinkingExpanded = true;
-
-  addMessage('user', caseData.userMessage);
-  await sleep(500);
-
-  const aiMsgPromise = new Promise(resolve => {
-    const el = addMessage('ai', '', { typing: false });
-    const bubble = el.querySelector('.message-bubble');
-    typewriterEffect(bubble, caseData.aiReply).then(resolve);
-  });
-
-  await sleep(300);
-  await animatePipeline(caseData.agents);
-  await aiMsgPromise;
-  await sleep(400);
-
-  addMessage('ai', `方案已生成！为你准备了${caseData.plans.length}套差异化方案，请在右侧面板查看和对比 👉`);
-  await sleep(300);
-
-  renderPlans(caseData);
-  state.isAnimating = false;
-}
-
-// ─── 展示模式 — 预建案例播放（本地硬编码fallback） ───
+/* ─── Showcase Mode ─── */
 async function playShowcase(caseKey) {
   if (state.isAnimating) return;
   state.isAnimating = true;
+  state.mode = 'showcase';
 
-  const caseData = PREBUILT_CASES[caseKey];
+  const caseData = DEMO_CASES[caseKey];
   if (!caseData) { state.isAnimating = false; return; }
 
-  $('#presetScenes').style.display = 'none';
-  $('#thinkingPanel').classList.add('expanded');
-  state.thinkingExpanded = true;
-
   addMessage('user', caseData.userMessage);
-  await sleep(500);
-
-  const aiMsgPromise = new Promise(resolve => {
-    const el = addMessage('ai', '', { typing: false });
-    const bubble = el.querySelector('.message-bubble');
-    typewriterEffect(bubble, caseData.aiReply).then(resolve);
-  });
-
-  await sleep(300);
-  await animatePipeline(caseData.agents);
-  await aiMsgPromise;
   await sleep(400);
 
-  addMessage('ai', '方案已生成！为你准备了3套差异化方案，请在右侧面板查看和对比 👉');
+  const aiMsg = addMessage('ai', '', { typing: true });
+  await sleep(800);
+  await typewriterEffect(aiMsg.bubble, caseData.aiReply);
+  await sleep(200);
+
+  if (caseData.agents && caseData.agents.length > 0) {
+    await animatePipeline(caseData.agents);
+  }
   await sleep(300);
 
+  addMessage('ai', `方案已生成！为你准备了${caseData.plans.length}套差异化方案，请在右侧面板查看 👉`);
   renderPlans(caseData);
+  saveHistory(caseData.userMessage, caseData.plans[0].title);
+
   state.isAnimating = false;
 }
 
-// ─── 在线模式 ───
+/* ─── Live SSE Mode ─── */
 async function planLive(userInput) {
-  addMessage('user', userInput);
   state.mode = 'live';
-  $('#modeBadge').textContent = '在线模式';
-  $('#modeBadge').classList.add('live');
-
-  const thinkingMsg = addMessage('ai', '正在为你规划中...', { typing: false });
-
-  $('#thinkingPanel').classList.add('expanded');
-  state.thinkingExpanded = true;
-  renderPipeline(AGENT_PIPELINE_TEMPLATE, 0);
-  $('#thinkingBarStatus').textContent = '正在连接 Agent...';
+  addMessage('user', userInput);
+  const aiMsg = addMessage('ai', '', { typing: true });
 
   try {
+    const body = { input: userInput, city: state.city || '杭州' };
+    if (state.location) body.location = `${state.location.lng},${state.location.lat}`;
+
     const resp = await fetch('/api/plan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input: userInput, user_id: 'demo_user' })
+      body: JSON.stringify(body),
     });
 
-    if (resp.headers.get('content-type')?.includes('text/event-stream')) {
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let currentAgentIdx = 0;
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop();
-
-        let currentEvent = '';
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7).trim();
-          } else if (line.startsWith('data: ')) {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (line.startsWith('event:')) {
+          const eventType = line.slice(6).trim();
+          const nextLine = lines[lines.indexOf(line) + 1];
+          if (nextLine && nextLine.startsWith('data:')) {
             try {
-              const data = JSON.parse(line.slice(6));
-              handleSSEEvent(currentEvent, data, thinkingMsg);
-              if (currentEvent === 'agent_start') currentAgentIdx++;
-            } catch (e) { /* skip malformed events */ }
+              const data = JSON.parse(nextLine.slice(5).trim());
+              handleSSEEvent(eventType, data, aiMsg);
+            } catch {}
           }
         }
       }
-    } else {
-      const data = await resp.json();
-      if (data.plans) {
-        renderPlans({ plans: data.plans, agents: data.agents || AGENT_PIPELINE_TEMPLATE });
-        thinkingMsg.querySelector('.message-bubble').textContent = '方案已生成，请查看右侧面板！';
-      }
     }
-  } catch (err) {
-    thinkingMsg.querySelector('.message-bubble').innerHTML = '⚠️ 无法连接到后端服务。<br>提示：您可以点击预设场景按钮体验展示模式。';
-    console.warn('Live mode unavailable:', err.message);
-    state.mode = 'showcase';
-    $('#modeBadge').textContent = '展示模式';
-    $('#modeBadge').classList.remove('live');
+  } catch (e) {
+    console.warn('SSE failed, falling back to demo:', e);
+    matchAndPlayDemo(userInput);
   }
 }
 
-function handleSSEEvent(eventType, data, thinkingMsg) {
-  const AGENT_ICONS = { orchestrator: '🎯', context: '📋', dining: '🍽', activity: '🎪', synthesizer: '🧩', critic: '🔍', executor: '⚡', notifier: '🔔' };
-
+function handleSSEEvent(eventType, data, aiMsg) {
   switch (eventType) {
-    case 'agent_start': {
-      const agentName = data.agent || 'Agent';
-      $('#thinkingBarStatus').textContent = `${AGENT_ICONS[agentName] || '⚙️'} ${agentName} 启动中...`;
+    case 'agent_start':
       break;
-    }
-    case 'agent_thinking': {
-      const agentName = data.agent || 'Agent';
-      showAgentDetail(
-        { name: agentName, icon: AGENT_ICONS[agentName] || '⚙️', thinking: data.thought || '' },
-        0, 'running'
-      );
+    case 'agent_thinking':
+      if (data.thought) showAgentDetail({ icon: '🤔', name: data.agent || '', thinking: data.thought });
       break;
-    }
-    case 'agent_complete': {
-      const agentName = data.agent || 'Agent';
-      $('#thinkingBarStatus').textContent = `${AGENT_ICONS[agentName] || '✅'} ${agentName} 完成`;
+    case 'agent_complete':
       break;
-    }
-    case 'plan_ready': {
+    case 'plan_ready':
+      if (aiMsg && aiMsg.bubble) aiMsg.bubble.textContent = '方案已生成！请在右侧面板查看 👉';
       if (data.plans) {
-        const localCase = {
-          plans: data.plans.map((p, idx) => ({
-            name: p.title || `方案 ${String.fromCharCode(65 + idx)}`,
-            title: p.title || `方案 ${String.fromCharCode(65 + idx)}`,
-            subtitle: p.summary || p.highlight || '',
-            scores: {
-              cost: ((p.score?.cost || 70) / 100),
-              fun: ((p.score?.fun || 70) / 100),
-              convenience: ((p.score?.convenience || 70) / 100),
-              fit: ((p.score?.fit || 70) / 100),
-              uniqueness: ((p.score?.uniqueness || 70) / 100),
-            },
-            totalCost: `¥${p.total_cost_per_person || '?'}/人`,
-            duration: `${p.total_duration_hours || '?'}h`,
-            count: (p.nodes || []).length,
-            timeline: (p.nodes || []).map(n => ({
-              time: n.time_start || '',
-              icon: { activity: '🎪', dining: '🍽', transport: '🚗', rest: '☕' }[n.category] || '📍',
-              title: n.title || n.venue_name || '',
-              subtitle: n.description || n.venue_address || '',
-              tags: [
-                n.cost_per_person ? { text: `¥${n.cost_per_person}/人`, type: 'price' } : null,
-                n.booking_status === 'confirmed' ? { text: '已预约', type: 'booked' } : null,
-              ].filter(Boolean),
-              detail: n.description || ''
-            }))
-          }))
-        };
-        renderPlans(localCase);
-        if (thinkingMsg) {
-          thinkingMsg.querySelector('.message-bubble').textContent = '方案已生成，请查看右侧面板！ 🎯';
-        }
-        addMessage('ai', '方案已就绪！请在右侧面板查看 🎯');
+        const converted = convertAPIPlans(data);
+        renderPlans(converted);
       }
       break;
-    }
     case 'error':
-      if (thinkingMsg) {
-        thinkingMsg.querySelector('.message-bubble').innerHTML = `⚠️ ${data.message || '处理出错'}<br><small>您可以点击预设场景按钮体验展示模式。</small>`;
-      }
-      break;
-    case 'done':
-      $('#thinkingBarStatus').textContent = '全部完成 ✅';
+      if (aiMsg && aiMsg.bubble) aiMsg.bubble.textContent = `出了点问题：${data.message || '未知错误'}`;
       break;
   }
 }
 
-// ─── 一键执行 ───
-async function executeAll() {
-  if (!state.currentCase) return;
+function convertAPIPlans(apiData) {
+  const plans = (apiData.plans || []).map((p, i) => ({
+    name: p.title || `方案${String.fromCharCode(65 + i)}`,
+    title: p.title || `方案${String.fromCharCode(65 + i)}`,
+    subtitle: p.subtitle || p.description || '',
+    scores: p.scores ? Object.values(p.scores).map(v => parseFloat(v) / (parseFloat(v) > 1 ? 10 : 1)) : [0.7, 0.7, 0.7, 0.7, 0.7],
+    totalCost: p.total_cost ? `¥${p.total_cost}` : '—',
+    duration: p.duration || '—',
+    count: (p.timeline || p.nodes || []).length,
+    timeline: (p.timeline || p.nodes || []).map(n => ({
+      time: n.time || n.start_time || '',
+      icon: n.icon || '📌',
+      title: n.title || n.name || '',
+      subtitle: n.subtitle || n.description || '',
+      nodeType: n.type || n.node_type || 'activity',
+      location: n.location || '',
+      rating: n.rating || '',
+      dianping_rating: n.dianping_rating || '',
+      meituan_rating: n.meituan_rating || '',
+      cost: n.cost || n.price || '',
+      business_area: n.business_area || '',
+    })),
+  }));
+  return { plans };
+}
+
+function matchAndPlayDemo(input) {
+  const lower = input.toLowerCase();
+  if (/娃|孩子|家|亲子|宝宝|baby/.test(lower)) return playShowcase('family-park');
+  if (/朋友|聚|哥们|姐妹|同事|团建/.test(lower)) return playShowcase('friends-gathering');
+  if (/女朋友|男朋友|约会|浪漫|情侣|老婆|老公/.test(lower)) return playShowcase('couple-date');
+  if (/一个人|独处|安静|独自|发呆|solo/.test(lower)) return playShowcase('solo-relax');
+  if (/雨|室内|下雨|阴天/.test(lower)) return playShowcase('rainy-indoor');
+  if (/北京|故宫|胡同|798|颐和园/.test(lower)) return playShowcase('beijing-culture');
+  playShowcase('family-park');
+}
+
+/* ─── Swap & Budget ─── */
+async function swapNode(nodeIdx, currentTitle) {
+  showToast('正在搜索替代选项...');
   const plan = state.currentCase.plans[state.currentPlanIdx];
+  try {
+    const resp = await fetch('/api/swap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ node_index: nodeIdx, plan: { timeline: plan.timeline, city: state.city || '杭州' } }),
+    });
+    const data = await resp.json();
+    if (data.success && data.node) {
+      Object.assign(plan.timeline[nodeIdx], { title: data.node.title, subtitle: data.node.subtitle, location: data.node.location || plan.timeline[nodeIdx].location, rating: data.node.rating, business_area: data.node.business_area });
+      renderPlanContent(state.currentPlanIdx);
+      showToast('已替换！');
+      return;
+    }
+  } catch {}
+  const pool = ['星巴克臻选', 'COSTA咖啡', '太平洋咖啡', 'M Stand'];
+  plan.timeline[nodeIdx].title = pool[Math.floor(Math.random() * pool.length)];
+  plan.timeline[nodeIdx].subtitle = '本地推荐·评价不错';
+  renderPlanContent(state.currentPlanIdx);
+  showToast('已切换为替代选项');
+}
+
+async function budgetAdjust(direction) {
+  showToast(direction === 'cheaper' ? '正在寻找更省钱的方案...' : '正在升级为更高端的方案...');
+  const plan = state.currentCase.plans[state.currentPlanIdx];
+  try {
+    const resp = await fetch('/api/budget-adjust', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ direction, plan: { timeline: plan.timeline, city: state.city || '杭州' } }),
+    });
+    const data = await resp.json();
+    if (data.success && data.plan) {
+      plan.timeline = data.plan.timeline;
+      renderPlanContent(state.currentPlanIdx);
+      showToast('方案已调整！');
+      return;
+    }
+  } catch {}
+  const multiplier = direction === 'cheaper' ? 0.7 : 1.5;
+  plan.timeline.forEach(n => { if (n.cost) n.cost = String(Math.round(parseFloat(n.cost) * multiplier)); });
+  const totalNum = plan.timeline.reduce((s, n) => s + (parseFloat(n.cost) || 0), 0);
+  plan.totalCost = `¥${Math.round(totalNum)}`;
+  renderPlanContent(state.currentPlanIdx);
+  showToast('预算已调整');
+}
+
+/* ─── Execute & Share ─── */
+async function executeAll() {
   const modal = $('#executeModal');
   const body = $('#executeBody');
-
+  if (!modal || !body) return;
   modal.style.display = 'flex';
+
+  const plan = state.currentCase.plans[state.currentPlanIdx];
+  const steps = (plan.timeline || []).filter(n => n.nodeType !== 'transport');
   body.innerHTML = '';
 
-  const items = plan.timeline.filter(t => t.title !== '返程' && t.title !== '散场' && t.title !== '返程休息' && t.title !== '散场回家');
-
-  items.forEach(item => {
-    const row = h('div', { className: 'execute-item', dataset: { title: item.title } }, [
-      h('div', { className: 'execute-icon', textContent: item.icon }),
-      h('div', { className: 'execute-info' }, [
-        h('div', { className: 'execute-name', textContent: item.title }),
-        h('div', { className: 'execute-desc', textContent: item.subtitle })
-      ]),
-      h('div', { className: 'execute-status pending' })
-    ]);
-    body.appendChild(row);
-  });
-
-  for (const item of body.querySelectorAll('.execute-item')) {
-    const status = item.querySelector('.execute-status');
-    status.className = 'execute-status running';
-    status.textContent = '⏳';
-    await sleep(1000 + Math.random() * 800);
-    status.className = 'execute-status';
-    status.innerHTML = '';
-    const check = h('div', { className: 'execute-checkmark', textContent: '✓' });
-    status.appendChild(check);
-
-    const dot = $(`.timeline-item:nth-child(${[...body.children].indexOf(item) + 1}) .timeline-dot`);
-    if (dot) dot.classList.add('completed');
+  for (const [idx, step] of steps.entries()) {
+    const el = document.createElement('div');
+    el.className = 'exec-item';
+    el.innerHTML = `<div class="exec-icon">${step.icon || '📌'}</div><div class="exec-info"><div class="exec-title">${step.title}</div><div class="exec-status pending">准备中...</div></div>`;
+    body.appendChild(el);
+    await sleep(600 + Math.random() * 400);
+    el.querySelector('.exec-status').textContent = '✅ 已确认';
+    el.querySelector('.exec-status').className = 'exec-status done';
   }
-
   await sleep(400);
-  const doneMsg = h('div', {
-    style: { textAlign: 'center', padding: '16px', fontSize: '.9rem', color: 'var(--success)', fontWeight: '600' }
-  }, [
-    h('div', { textContent: '🎉', style: { fontSize: '2rem', marginBottom: '8px' } }),
-    h('span', { textContent: '所有环节已安排就绪！祝你周末愉快！' })
-  ]);
-  body.appendChild(doneMsg);
+  const doneEl = document.createElement('div');
+  doneEl.className = 'exec-done';
+  doneEl.innerHTML = '🎉 全部安排就绪！享受你的周末吧！';
+  body.appendChild(doneEl);
 }
 
-// ─── 分享功能 ───
 function openShareModal() {
-  if (!state.currentCase) return;
-  const plan = state.currentCase.plans[state.currentPlanIdx];
   const modal = $('#shareModal');
-
-  const preview = $('#sharePreview');
-  preview.innerHTML = `<strong>${plan.title}</strong><br>${plan.subtitle}<br><br>`;
-  plan.timeline.forEach(t => {
-    preview.innerHTML += `${t.time} ${t.icon} ${t.title}<br>`;
-  });
-  preview.innerHTML += `<br>💰 ${plan.totalCost} · ⏱ ${plan.duration}`;
-
-  $('#shareLinkInput').value = `https://weplan.meituan.com/s/${Date.now().toString(36)}`;
-  modal.style.display = 'flex';
-}
-
-// ─── 投票功能 ───
-function openVoteModal() {
-  if (!state.currentCase) return;
+  const body = $('#shareBody');
+  if (!modal || !body || !state.currentCase) return;
   const plan = state.currentCase.plans[state.currentPlanIdx];
-  const modal = $('#voteModal');
-  const body = $('#voteBody');
-  body.innerHTML = '';
-  state.votes = {};
-
-  plan.timeline.forEach((item, idx) => {
-    const btns = [
-      { label: '❤️ Love', cls: 'love', val: 'love' },
-      { label: '👍 OK', cls: 'ok', val: 'ok' },
-      { label: '🤔 疑虑', cls: 'concern', val: 'concern' },
-      { label: '👎 No', cls: 'no', val: 'no' }
-    ];
-
-    const btnEls = btns.map(b => {
-      return h('button', {
-        className: `vote-btn ${b.cls}`,
-        textContent: b.label,
-        onClick: (e) => {
-          e.currentTarget.parentElement.querySelectorAll('.vote-btn').forEach(el => el.classList.remove('selected'));
-          e.currentTarget.classList.add('selected');
-          state.votes[idx] = b.val;
-        }
-      });
-    });
-
-    const row = h('div', { className: 'vote-item' }, [
-      h('div', { className: 'vote-item-info' }, [
-        h('span', { className: 'vote-item-icon', textContent: item.icon }),
-        h('span', { className: 'vote-item-name', textContent: item.title })
-      ]),
-      h('div', { className: 'vote-buttons' }, btnEls)
-    ]);
-    body.appendChild(row);
-  });
-
+  const text = generateShareText(plan);
+  body.innerHTML = `
+    <div class="share-preview">${text.replace(/\n/g, '<br>')}</div>
+    <button class="action-btn primary" onclick="navigator.clipboard.writeText(document.querySelector('.share-preview').textContent).then(()=>showToast('已复制到剪贴板'))">📋 复制文字</button>`;
   modal.style.display = 'flex';
 }
 
-// ─── Toast 通知 ───
-function showToast(message, duration = 2500) {
-  let toast = $('.toast');
-  if (!toast) {
-    toast = h('div', { className: 'toast' });
-    document.body.appendChild(toast);
+function generateShareText(plan) {
+  const lines = [`搞定了！周末安排：${plan.title || plan.name}`, ''];
+  (plan.timeline || []).forEach(n => {
+    if (n.nodeType === 'transport') return;
+    lines.push(`${n.time || ''} ${n.icon || ''} ${n.title}${n.cost && n.cost !== '0' ? ` (¥${n.cost}/人)` : ''}`);
+  });
+  lines.push('', `预计花费${plan.totalCost || '—'} · 时长${plan.duration || '—'}`);
+  lines.push('', '—— 由 WePlan AI 规划');
+  return lines.join('\n');
+}
+
+/* ─── Voice Input ─── */
+function initVoiceInput() {
+  const btn = $('#micBtn');
+  if (!btn) return;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) { btn.style.display = 'none'; return; }
+
+  let recognition = null;
+  let isListening = false;
+
+  btn.addEventListener('click', () => {
+    if (isListening) {
+      recognition.stop();
+      isListening = false;
+      btn.classList.remove('listening');
+      return;
+    }
+    recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onresult = (e) => {
+      const text = e.results[0][0].transcript;
+      const input = $('#chatInput');
+      if (input) input.value = text;
+      sendMessage();
+    };
+    recognition.onend = () => { isListening = false; btn.classList.remove('listening'); };
+    recognition.onerror = () => { isListening = false; btn.classList.remove('listening'); };
+    recognition.start();
+    isListening = true;
+    btn.classList.add('listening');
+    showToast('正在聆听...');
+  });
+}
+
+/* ─── History ─── */
+function getHistory() { try { return JSON.parse(localStorage.getItem('weplan-history') || '[]'); } catch { return []; } }
+function saveHistory(query, title) {
+  const h = getHistory();
+  h.unshift({ query, title, time: new Date().toLocaleString('zh-CN'), ts: Date.now() });
+  localStorage.setItem('weplan-history', JSON.stringify(h.slice(0, 10)));
+}
+function renderHistory() {
+  const list = $('#historyList');
+  if (!list) return;
+  const h = getHistory();
+  if (h.length === 0) { list.innerHTML = '<div class="history-empty">暂无历史记录</div>'; return; }
+  list.innerHTML = h.map(item => `
+    <div class="history-item" onclick="document.querySelector('#chatInput').value='${item.query.replace(/'/g, '')}';document.querySelector('#historyDrawer').style.display='none';sendMessage()">
+      <div class="history-query">${item.query}</div>
+      <div class="history-meta">${item.title} · ${item.time}</div>
+    </div>`).join('');
+}
+
+/* ─── GPS Location ─── */
+async function initLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        state.location = { lng: pos.coords.longitude, lat: pos.coords.latitude };
+        try {
+          if (typeof AMap !== 'undefined') {
+            const geocoder = new AMap.Geocoder();
+            geocoder.getAddress([state.location.lng, state.location.lat], (status, result) => {
+              if (status === 'complete' && result.regeocode) {
+                const city = result.regeocode.addressComponent.city || result.regeocode.addressComponent.province;
+                if (city) { state.city = city.replace(/市$/, ''); updateCityLabel(); }
+              }
+            });
+          }
+        } catch {}
+        MapManager.setCenter(state.location.lng, state.location.lat, 13);
+      },
+      () => ipFallbackLocation(),
+      { timeout: 5000 }
+    );
+  } else {
+    ipFallbackLocation();
   }
-  toast.textContent = message;
+}
+
+async function ipFallbackLocation() {
+  try {
+    const resp = await fetch('/api/locate');
+    const data = await resp.json();
+    state.city = (data.city || '杭州').replace(/市$/, '');
+    if (data.location) {
+      const [lng, lat] = data.location.split(',').map(Number);
+      state.location = { lng, lat };
+      MapManager.setCenter(lng, lat, 13);
+    }
+    updateCityLabel();
+  } catch {
+    state.city = '杭州';
+    updateCityLabel();
+  }
+}
+
+function updateCityLabel() {
+  const el = $('#cityLabel');
+  if (el) el.textContent = state.city || '杭州';
+}
+
+/* ─── Toast, Theme ─── */
+function showToast(msg, duration = 2000) {
+  const toast = $('#toast');
+  if (!toast) return;
+  toast.textContent = msg;
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), duration);
 }
 
-// ─── 主题切换 ───
 function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme');
-  const next = current === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
   state.theme = next;
   localStorage.setItem('weplan-theme', next);
-  if (state.currentCase) {
-    const allScores = state.currentCase.plans.map(p => p.scores);
-    drawRadarChart($('#radarCanvas'), allScores, state.currentPlanIdx);
-  }
 }
 
-// ─── 城市选择器 ───
-function initCitySelector() {
-  const selector = $('#citySelector');
-  selector.addEventListener('click', (e) => {
-    e.stopPropagation();
-    selector.classList.toggle('open');
-  });
-
-  $$('.city-option').forEach(opt => {
-    opt.addEventListener('click', (e) => {
-      e.stopPropagation();
-      $$('.city-option').forEach(o => o.classList.remove('active'));
-      opt.classList.add('active');
-      state.city = opt.dataset.city;
-      selector.querySelector('.city-name').textContent = opt.dataset.city;
-      selector.classList.remove('open');
-      showToast(`已切换到${opt.dataset.city}`);
-    });
-  });
-
-  document.addEventListener('click', () => selector.classList.remove('open'));
+function initTheme() {
+  document.documentElement.setAttribute('data-theme', state.theme);
 }
 
-// ─── 模式标签切换 ───
-function initModeTabs() {
-  $$('.mode-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      $$('.mode-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      state.sceneMode = tab.dataset.mode;
-      showToast(`已切换至${tab.querySelector('.mode-label').textContent}模式`);
-    });
-  });
-}
-
-// ─── 聊天输入 ───
-function initChatInput() {
-  const input = $('#chatInput');
-  const btn = $('#sendBtn');
-
-  input.addEventListener('input', () => {
-    input.style.height = 'auto';
-    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-  });
-
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
-
-  btn.addEventListener('click', sendMessage);
-}
-
+/* ─── Send Message ─── */
 function sendMessage() {
   const input = $('#chatInput');
+  if (!input) return;
   const text = input.value.trim();
-  if (!text) return;
-
+  if (!text || state.isAnimating) return;
   input.value = '';
-  input.style.height = 'auto';
+
+  const panel = $('#thinkingPanel');
+  if (panel) panel.style.display = '';
+
   planLive(text);
 }
 
-// ─── 预设场景按钮 ───
+/* ─── Initialization ─── */
+function initChatInput() {
+  const input = $('#chatInput');
+  const sendBtn = $('#sendBtn');
+  if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+  if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+}
+
 function initPresetButtons() {
-  $$('.preset-btn').forEach(btn => {
+  $$('.prompt-bubble').forEach(btn => {
     btn.addEventListener('click', () => {
-      const caseKey = btn.dataset.case;
-      if (PREBUILT_CASES[caseKey]) {
-        playShowcase(caseKey);
-      } else {
-        playShowcaseFromAPI(caseKey);
-      }
+      const prompt = btn.getAttribute('data-prompt');
+      if (!prompt) return;
+      matchAndPlayDemo(prompt);
     });
   });
 }
 
-// ─── Agent 思维面板折叠 ───
 function initThinkingPanel() {
-  const bar = $('#thinkingToggleBar');
-  const panel = $('#thinkingPanel');
-
-  bar.addEventListener('click', () => {
-    state.thinkingExpanded = !state.thinkingExpanded;
-    panel.classList.toggle('expanded', state.thinkingExpanded);
-  });
-
-  const toggleBtn = $('#thinkingToggle');
-  toggleBtn.addEventListener('click', () => {
-    state.thinkingExpanded = !state.thinkingExpanded;
-    panel.classList.toggle('expanded', state.thinkingExpanded);
-    toggleBtn.classList.toggle('active', state.thinkingExpanded);
-  });
+  const toggle = $('#thinkingCollapseBtn');
+  const body = $('#thinkingBody');
+  if (toggle && body) {
+    toggle.addEventListener('click', () => {
+      state.thinkingExpanded = !state.thinkingExpanded;
+      body.style.display = state.thinkingExpanded ? 'none' : '';
+      toggle.style.transform = state.thinkingExpanded ? 'rotate(180deg)' : '';
+    });
+  }
 }
 
-// ─── 底部操作按钮 ───
 function initActionButtons() {
-  $('#executeBtn').addEventListener('click', executeAll);
-  $('#shareBtn').addEventListener('click', openShareModal);
-  $('#voteBtn').addEventListener('click', openVoteModal);
+  const executeBtn = $('#executeBtn');
+  const shareBtn = $('#shareBtn');
+  const cheaperBtn = $('#cheaperBtn');
+  const premiumBtn = $('#premiumBtn');
+
+  if (executeBtn) executeBtn.addEventListener('click', executeAll);
+  if (shareBtn) shareBtn.addEventListener('click', openShareModal);
+  if (cheaperBtn) cheaperBtn.addEventListener('click', () => budgetAdjust('cheaper'));
+  if (premiumBtn) premiumBtn.addEventListener('click', () => budgetAdjust('premium'));
 
   $$('.modal-close').forEach(btn => {
     btn.addEventListener('click', () => {
-      const modalId = btn.dataset.modal;
-      if (modalId) $(`#${modalId}`).style.display = 'none';
+      const modal = btn.closest('.modal-overlay') || btn.closest('.history-drawer');
+      if (modal) modal.style.display = 'none';
     });
   });
 
   $$('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.style.display = 'none';
-    });
-  });
-
-  $('#submitVote')?.addEventListener('click', () => {
-    const total = Object.keys(state.votes).length;
-    if (total === 0) { showToast('请至少为一个环节投票'); return; }
-    showToast(`投票已提交！共 ${total} 项`);
-    $('#voteModal').style.display = 'none';
-  });
-
-  $('#copyLinkBtn')?.addEventListener('click', () => {
-    const input = $('#shareLinkInput');
-    input.select();
-    navigator.clipboard?.writeText(input.value).then(() => showToast('链接已复制'));
-  });
-
-  $$('.share-channel').forEach(ch => {
-    ch.addEventListener('click', () => {
-      showToast(`正在打开${ch.querySelector('span:last-child').textContent}分享...`);
-      setTimeout(() => { $('#shareModal').style.display = 'none'; }, 800);
-    });
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.style.display = 'none'; });
   });
 }
 
-// ─── 清空对话 ───
-function initClearChat() {
-  $('#clearChat').addEventListener('click', () => {
-    const messages = $('#chatMessages');
-    messages.innerHTML = '';
-    addMessage('ai', '你好！我是 WePlan，你的 AI 周末活动规划师 🎯\n\n告诉我你这个周末想怎么过，我会为你量身打造完美方案！');
-    $('#canvasEmpty').style.display = 'flex';
-    $('#canvasContent').style.display = 'none';
-    $('#presetScenes').style.display = 'block';
-    state.currentCase = null;
-    state.isAnimating = false;
-    $('#pipeline').innerHTML = '';
-    $('#agentDetail').innerHTML = '<div class="detail-placeholder">点击任意 Agent 节点查看详细思维过程</div>';
-    $('#thinkingBarStatus').textContent = '';
-    $('#thinkingPanel').classList.remove('expanded');
-    state.thinkingExpanded = false;
-    showToast('对话已清空');
-  });
+function initHistoryBtn() {
+  const btn = $('#historyBtn');
+  const drawer = $('#historyDrawer');
+  if (btn && drawer) {
+    btn.addEventListener('click', () => { renderHistory(); drawer.style.display = 'flex'; });
+  }
 }
 
-// ─── 移动端标签切换 ───
 function initMobileTabs() {
-  $$('.mobile-tab').forEach(tab => {
+  const chatPanel = $('#chatPanel');
+  const planPanel = $('#planPanel');
+  $$('.tab-item').forEach(tab => {
     tab.addEventListener('click', () => {
-      $$('.mobile-tab').forEach(t => t.classList.remove('active'));
+      $$('.tab-item').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
-      const panel = tab.dataset.panel;
-      if (panel === 'chat') {
-        $('#chatPanel').classList.remove('hidden');
-        $('.canvas-panel').classList.remove('visible');
+      const target = tab.getAttribute('data-tab');
+      if (target === 'chat') {
+        if (chatPanel) chatPanel.style.display = '';
+        if (planPanel) planPanel.style.display = 'none';
       } else {
-        $('#chatPanel').classList.add('hidden');
-        $('.canvas-panel').classList.add('visible');
+        if (chatPanel) chatPanel.style.display = 'none';
+        if (planPanel) planPanel.style.display = '';
       }
     });
   });
 }
 
-// ─── 初始化主题 ───
-function initTheme() {
-  const saved = localStorage.getItem('weplan-theme');
-  if (saved) {
-    document.documentElement.setAttribute('data-theme', saved);
-    state.theme = saved;
+function initAgentThinkingToggle() {
+  const check = $('#agentThinkingCheck');
+  const panel = $('#thinkingPanel');
+  if (check) {
+    check.addEventListener('change', () => {
+      if (panel) panel.style.display = check.checked ? '' : 'none';
+    });
   }
-  $('#themeToggle').addEventListener('click', toggleTheme);
 }
 
-// ─── 应用初始化 ───
-function init() {
+function initCityClick() {
+  const badge = $('#locationDisplay');
+  if (badge) {
+    badge.addEventListener('click', () => {
+      const newCity = prompt('输入城市名称：', state.city || '杭州');
+      if (newCity) { state.city = newCity.trim(); updateCityLabel(); showToast(`已切换到${state.city}`); }
+    });
+    badge.style.cursor = 'pointer';
+  }
+}
+
+async function init() {
   initTheme();
-  initCitySelector();
-  initModeTabs();
   initChatInput();
   initPresetButtons();
+  initVoiceInput();
   initThinkingPanel();
   initActionButtons();
-  initClearChat();
+  initHistoryBtn();
   initMobileTabs();
-  loadCasesFromAPI();
+  initAgentThinkingToggle();
+  initCityClick();
+
+  const themeBtn = $('#themeToggle');
+  if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+
+  setTimeout(() => {
+    MapManager.init();
+    initLocation();
+  }, 500);
 }
 
 document.addEventListener('DOMContentLoaded', init);

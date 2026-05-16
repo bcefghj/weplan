@@ -208,7 +208,7 @@ function initArchDiagram() {
   });
 
   const styleEl = document.createElement('style');
-  styleEl.textContent = '@keyframes archFadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}';
+  styleEl.textContent = '@keyframes archFadeIn{from{opacity:0}to{opacity:1}}';
   document.head.appendChild(styleEl);
 
   container.appendChild(svg);
