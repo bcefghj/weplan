@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>WePlan 产品介绍</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#fff;overflow:hidden;height:100vh}
+.slides{position:relative;width:100vw;height:100vh}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;opacity:0;transition:opacity .8s ease;pointer-events:none}
+.slide.active{opacity:1;pointer-events:auto}
+.slide h1{font-size:3.5rem;font-weight:800;margin-bottom:16px;background:linear-gradient(135deg,#FF6B35,#f7931e);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.slide h2{font-size:2.2rem;font-weight:700;margin-bottom:24px;color:#fff}
+.slide p{font-size:1.3rem;line-height:1.8;max-width:800px;text-align:center;color:#ccc}
+.slide .highlight{color:#FF6B35;font-weight:600}
+.slide .tag{display:inline-block;background:#FF6B3520;color:#FF6B35;padding:6px 16px;border-radius:20px;font-size:.9rem;margin:4px}
+.slide .subtitle{font-size:1rem;color:#888;margin-top:8px}
+
+.agent-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:900px;margin-top:32px}
+.agent-card{background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:20px;text-align:center;transition:transform .3s}
+.agent-card .icon{font-size:2rem;margin-bottom:8px}
+.agent-card .name{font-weight:600;font-size:.95rem;color:#fff}
+.agent-card .desc{font-size:.8rem;color:#888;margin-top:4px}
+
+.feature-list{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-top:32px;max-width:900px}
+.feature-item{background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:24px;width:260px;text-align:center}
+.feature-item .icon{font-size:2.5rem;margin-bottom:12px}
+.feature-item h3{font-size:1.1rem;margin-bottom:8px}
+.feature-item p{font-size:.85rem;color:#999;line-height:1.5}
+
+.scenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:800px;margin-top:32px}
+.scenario{background:linear-gradient(135deg,#1a1a2e,#2a1a3e);border:1px solid #444;border-radius:12px;padding:20px;text-align:center}
+.scenario .emoji{font-size:2rem;margin-bottom:8px}
+.scenario .title{font-weight:600;font-size:1rem}
+.scenario .city{font-size:.8rem;color:#888;margin-top:4px}
+
+.flow-row{display:flex;align-items:center;gap:12px;margin-top:32px;flex-wrap:wrap;justify-content:center}
+.flow-step{background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:16px 24px;text-align:center}
+.flow-step .icon{font-size:1.5rem}
+.flow-step .label{font-size:.85rem;color:#ccc;margin-top:4px}
+.flow-arrow{color:#FF6B35;font-size:1.5rem}
+
+.controls{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;z-index:100;background:#1a1a2eee;padding:12px 24px;border-radius:30px;border:1px solid #333}
+.controls button{background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;padding:8px 12px;border-radius:8px;transition:background .2s}
+.controls button:hover{background:#ffffff20}
+.progress{width:200px;height:4px;background:#333;border-radius:2px;position:relative;cursor:pointer}
+.progress-fill{height:100%;background:#FF6B35;border-radius:2px;width:0%;transition:width .3s}
+.timer{font-size:.85rem;color:#888;min-width:80px;text-align:center}
+
+.page-indicator{position:fixed;top:24px;right:24px;color:#666;font-size:.9rem;z-index:100}
+.logo-corner{position:fixed;top:24px;left:24px;z-index:100;font-size:1.2rem;font-weight:700;color:#FF6B35}
+
+.stats-row{display:flex;gap:40px;margin-top:32px}
+.stat{text-align:center}
+.stat .num{font-size:3rem;font-weight:800;color:#FF6B35}
+.stat .label{font-size:.9rem;color:#888;margin-top:4px}
+
+@media(max-width:768px){
+  .slide{padding:24px}
+  .slide h1{font-size:2rem}
+  .slide h2{font-size:1.5rem}
+  .slide p{font-size:1rem}
+  .agent-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .scenarios{grid-template-columns:repeat(2,1fr)}
+  .feature-list{flex-direction:column;align-items:center}
+}
+</style>
+</head>
+<body>
+
+<div class="logo-corner">WePlan</div>
+<div class="page-indicator" id="pageIndicator">1 / 10</div>
+
+<div class="slides" id="slides">
+
+  <!-- Slide 1: Title -->
+  <div class="slide active" data-time="0">
+    <p class="subtitle">美团 AI Hackathon 2026 · 赛题06</p>
+    <h1>WePlan</h1>
+    <h2>AI 周末生活规划师</h2>
+    <p>一句话输入，10秒生成完整方案<br>让 AI 帮你规划完美周末</p>
+    <div style="margin-top:24px">
+      <span class="tag">🤖 8-Agent 协作</span>
+      <span class="tag">🗺️ 高德地图</span>
+      <span class="tag">🧠 MiniMax M2.7</span>
+    </div>
+    <p class="subtitle" style="margin-top:24px">戴尚好 · 中国科学技术大学</p>
+  </div>
+
+  <!-- Slide 2: Pain Point -->
+  <div class="slide" data-time="12">
+    <h2>😩 周末出门的三大痛点</h2>
+    <div class="feature-list">
+      <div class="feature-item">
+        <div class="icon">📱</div>
+        <h3>信息分散</h3>
+        <p>5-6个App来回切换<br>查天气、搜餐厅、看评分<br>算路线、订门票……</p>
+      </div>
+      <div class="feature-item">
+        <div class="icon">🔗</div>
+        <h3>串联困难</h3>
+        <p>时间、距离、喜好、天气<br>多维度约束难以兼顾<br>最优组合靠猜</p>
+      </div>
+      <div class="feature-item">
+        <div class="icon">🗣️</div>
+        <h3>群体决策瘫痪</h3>
+        <p>"你看着办""随便吧"<br>群聊讨论半天无结果<br>规划最终不了了之</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: Solution -->
+  <div class="slide" data-time="30">
+    <h2>💡 WePlan 的解决方案</h2>
+    <p style="font-size:1.5rem;margin-bottom:32px">
+      <span class="highlight">一句话输入</span> → <span class="highlight">10秒</span>生成完整方案
+    </p>
+    <div style="background:#1a1a2e;border:1px solid #333;border-radius:16px;padding:32px;max-width:700px">
+      <p style="color:#888;font-size:.9rem;margin-bottom:12px">👤 用户输入</p>
+      <p style="font-size:1.2rem;text-align:left">"今天下午想带5岁孩子出去玩几个小时，老婆在减肥，别离家太远"</p>
+      <div style="margin:20px 0;text-align:center;font-size:2rem">⬇️</div>
+      <p style="color:#888;font-size:.9rem;margin-bottom:12px">🤖 WePlan 输出</p>
+      <p style="font-size:1rem;text-align:left;color:#ccc">
+        ✅ 3套差异化方案 · ✅ 真实POI数据 · ✅ 路线可视化<br>
+        ✅ 时间线安排 · ✅ 预算统计 · ✅ 一键执行
+      </p>
+    </div>
+  </div>
+
+  <!-- Slide 4: 8-Agent Architecture -->
+  <div class="slide" data-time="50">
+    <h2>🏗️ 八Agent协作架构</h2>
+    <div class="agent-grid">
+      <div class="agent-card"><div class="icon">🎯</div><div class="name">Orchestrator</div><div class="desc">意图解析·任务分发</div></div>
+      <div class="agent-card"><div class="icon">🌤️</div><div class="name">Context Agent</div><div class="desc">天气·位置·环境</div></div>
+      <div class="agent-card"><div class="icon">🍽️</div><div class="name">Dining Agent</div><div class="desc">餐厅搜索·口味匹配</div></div>
+      <div class="agent-card"><div class="icon">🎪</div><div class="name">Activity Agent</div><div class="desc">活动推荐·年龄适配</div></div>
+      <div class="agent-card"><div class="icon">📋</div><div class="name">Synthesizer</div><div class="desc">方案整合·路线串联</div></div>
+      <div class="agent-card"><div class="icon">⚖️</div><div class="name">Critic Agent</div><div class="desc">规则校验·质量把关</div></div>
+      <div class="agent-card"><div class="icon">⚡</div><div class="name">Execution Agent</div><div class="desc">一键预约·购票叫车</div></div>
+      <div class="agent-card"><div class="icon">🔔</div><div class="name">Notification</div><div class="desc">分享推送·群体投票</div></div>
+    </div>
+    <p style="margin-top:20px;color:#888">三路并行采集，延迟从6s降至2.5s</p>
+  </div>
+
+  <!-- Slide 5: Critic Agent -->
+  <div class="slide" data-time="75">
+    <h2>⚖️ Critic Agent · 确定性校验</h2>
+    <p style="margin-bottom:32px">非LLM黑箱，8项硬规则保障方案100%可行</p>
+    <div class="flow-row">
+      <div class="flow-step"><div class="icon">📋</div><div class="label">方案生成</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="icon">⚖️</div><div class="label">规则校验</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:#e53e3e"><div class="icon">❌</div><div class="label">不通过？打回</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:#38a169"><div class="icon">✅</div><div class="label">通过！输出</div></div>
+    </div>
+    <div style="margin-top:32px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:700px">
+      <div style="background:#1a1a2e;padding:12px;border-radius:8px;text-align:center;font-size:.85rem">⏰ 营业时间</div>
+      <div style="background:#1a1a2e;padding:12px;border-radius:8px;text-align:center;font-size:.85rem">🚗 交通时间</div>
+      <div style="background:#1a1a2e;padding:12px;border-radius:8px;text-align:center;font-size:.85rem">👶 年龄适配</div>
+      <div style="background:#1a1a2e;padding:12px;border-radius:8px;text-align:center;font-size:.85rem">💰 预算约束</div>
+      <div style="background:#1a1a2e;padding:12px;border-radius:8px;text-align:center;font-size:.85rem">🌧️ 天气适配</div>
+      <div style="background:#1a1a2e;padding:12px;border-radius:8px;text-align:center;font-size:.85rem">📍 距离合理</div>
+      <div style="background:#1a1a2e;padding:12px;border-radius:8px;text-align:center;font-size:.85rem">🍽️ 饮食禁忌</div>
+      <div style="background:#1a1a2e;padding:12px;border-radius:8px;text-align:center;font-size:.85rem">⏱️ 时长合理</div>
+    </div>
+  </div>
+
+  <!-- Slide 6: Frontend -->
+  <div class="slide" data-time="97">
+    <h2>🖥️ 桌面双栏布局</h2>
+    <p style="margin-bottom:24px">左侧对话 + 右侧方案面板，信息一目了然</p>
+    <div style="display:flex;gap:16px;max-width:900px;width:100%">
+      <div style="flex:4;background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:20px;min-height:300px">
+        <div style="font-weight:600;margin-bottom:12px">💬 对话面板</div>
+        <div style="background:#252540;border-radius:8px;padding:12px;margin-bottom:8px;font-size:.85rem">🤖 你好！我是WePlan</div>
+        <div style="background:#FF6B3520;border-radius:8px;padding:12px;margin-bottom:8px;font-size:.85rem;text-align:right">带孩子出去玩</div>
+        <div style="background:#252540;border-radius:8px;padding:12px;font-size:.85rem">🤖 已生成3套方案 👉</div>
+        <div style="margin-top:16px;display:flex;gap:8px">
+          <span class="tag" style="font-size:.75rem">🎙️ 语音</span>
+          <span class="tag" style="font-size:.75rem">📍 定位</span>
+          <span class="tag" style="font-size:.75rem">📜 历史</span>
+        </div>
+      </div>
+      <div style="flex:6;background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:20px;min-height:300px">
+        <div style="font-weight:600;margin-bottom:12px">📊 方案面板</div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <span style="background:#FF6B35;padding:6px 14px;border-radius:6px;font-size:.8rem">方案A</span>
+          <span style="background:#333;padding:6px 14px;border-radius:6px;font-size:.8rem">方案B</span>
+          <span style="background:#333;padding:6px 14px;border-radius:6px;font-size:.8rem">方案C</span>
+        </div>
+        <div style="background:#252540;border-radius:8px;height:100px;display:flex;align-items:center;justify-content:center;margin-bottom:12px">🗺️ 高德地图路线可视化</div>
+        <div style="display:flex;gap:12px">
+          <div style="flex:1;background:#252540;border-radius:8px;padding:12px;text-align:center;font-size:.8rem">📊 雷达图</div>
+          <div style="flex:1;background:#252540;border-radius:8px;padding:12px;text-align:center;font-size:.8rem">📋 时间线</div>
+          <div style="flex:1;background:#252540;border-radius:8px;padding:12px;text-align:center;font-size:.8rem">💰 统计</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: Scenarios -->
+  <div class="slide" data-time="117">
+    <h2>🎭 6大预建场景</h2>
+    <p style="margin-bottom:24px">覆盖多城市、多人群、多天气条件</p>
+    <div class="scenarios">
+      <div class="scenario"><div class="emoji">👨‍👩‍👧</div><div class="title">家庭亲子游</div><div class="city">杭州 · 适合5岁+</div></div>
+      <div class="scenario"><div class="emoji">🍻</div><div class="title">朋友聚会</div><div class="city">杭州 · 4人聚餐+娱乐</div></div>
+      <div class="scenario"><div class="emoji">💑</div><div class="title">情侣约会</div><div class="city">杭州 · 纪念日特别版</div></div>
+      <div class="scenario"><div class="emoji">🧘</div><div class="title">独处放松</div><div class="city">杭州 · City Walk</div></div>
+      <div class="scenario"><div class="emoji">🌧️</div><div class="title">雨天室内</div><div class="city">杭州 · 全室内方案</div></div>
+      <div class="scenario"><div class="emoji">🏛️</div><div class="title">文化探索</div><div class="city">北京 · 历史人文</div></div>
+    </div>
+    <p style="margin-top:24px;color:#888">每个场景含3套方案 · 真实坐标 · 多平台评分</p>
+  </div>
+
+  <!-- Slide 8: ToolHarness -->
+  <div class="slide" data-time="137">
+    <h2>🛡️ Harness 工程化 · 异常兜底</h2>
+    <p style="margin-bottom:32px">每个API调用都有完整的容错链路</p>
+    <div class="flow-row">
+      <div class="flow-step"><div class="icon">🌐</div><div class="label">API调用</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="icon">⏱️</div><div class="label">超时8s</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="icon">🔄</div><div class="label">重试2次</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="icon">📦</div><div class="label">缓存降级</div></div>
+    </div>
+    <div style="margin-top:32px;max-width:700px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#1a1a2e;padding:16px;border-radius:8px;font-size:.9rem"><span class="highlight">餐厅满员</span><br><span style="color:#888">→ 自动搜索附近3家备选</span></div>
+      <div style="background:#1a1a2e;padding:16px;border-radius:8px;font-size:.9rem"><span class="highlight">天气变差</span><br><span style="color:#888">→ 户外替换为室内方案</span></div>
+      <div style="background:#1a1a2e;padding:16px;border-radius:8px;font-size:.9rem"><span class="highlight">API超时</span><br><span style="color:#888">→ 降级到缓存/Mock数据</span></div>
+      <div style="background:#1a1a2e;padding:16px;border-radius:8px;font-size:.9rem"><span class="highlight">LLM异常</span><br><span style="color:#888">→ 预设模板填充兜底</span></div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Business Value -->
+  <div class="slide" data-time="150">
+    <h2>💼 商业价值 · 美团生态融合</h2>
+    <p style="margin-bottom:32px">从规划到执行的全链路闭环</p>
+    <div class="flow-row" style="margin-bottom:32px">
+      <div class="flow-step" style="border-color:#FF6B35"><div class="icon">💬</div><div class="label">语言输入</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:#FF6B35"><div class="icon">🧠</div><div class="label">AI规划</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:#FF6B35"><div class="icon">📋</div><div class="label">方案生成</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:#38a169"><div class="icon">🛒</div><div class="label">一键执行</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step" style="border-color:#38a169"><div class="icon">📤</div><div class="label">分享投票</div></div>
+    </div>
+    <div class="feature-list">
+      <div class="feature-item">
+        <div class="icon">🍔</div>
+        <h3>对接美团订餐</h3>
+        <p>标准化JSON方案<br>直接调起下单流程</p>
+      </div>
+      <div class="feature-item">
+        <div class="icon">🎫</div>
+        <h3>对接美团购票</h3>
+        <p>景区/展览/电影<br>一键在线购票</p>
+      </div>
+      <div class="feature-item">
+        <div class="icon">🚗</div>
+        <h3>对接美团打车</h3>
+        <p>路线自动串联<br>叫车无缝衔接</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 10: Thank You -->
+  <div class="slide" data-time="168">
+    <h1>WePlan</h1>
+    <h2>让 AI 帮你规划完美周末</h2>
+    <div class="stats-row">
+      <div class="stat"><div class="num">8</div><div class="label">Agent 协作</div></div>
+      <div class="stat"><div class="num">10s</div><div class="label">方案生成</div></div>
+      <div class="stat"><div class="num">6</div><div class="label">预建场景</div></div>
+      <div class="stat"><div class="num">100%</div><div class="label">约束满足</div></div>
+    </div>
+    <div style="margin-top:40px">
+      <p style="color:#888">Demo: <a href="http://121.41.74.45/demo/" style="color:#FF6B35">121.41.74.45/demo</a></p>
+      <p style="color:#888;margin-top:8px">GitHub: <a href="https://github.com/bcefghj/weplan" style="color:#FF6B35">github.com/bcefghj/weplan</a></p>
+    </div>
+    <p style="margin-top:32px;font-size:1.5rem">感谢各位评委观看！🙏</p>
+  </div>
+
+</div>
+
+<div class="controls">
+  <button id="playBtn" onclick="togglePlay()">▶</button>
+  <button onclick="prevSlide()">◀</button>
+  <div class="progress" id="progressBar" onclick="seekAudio(event)">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+  <button onclick="nextSlide()">▶</button>
+  <div class="timer" id="timer">0:00 / 0:00</div>
+</div>
+
+<audio id="audio" preload="auto">
+  <source src="weplan_narration.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+const audio = document.getElementById('audio');
+const slides = document.querySelectorAll('.slide');
+const progressFill = document.getElementById('progressFill');
+const timerEl = document.getElementById('timer');
+const playBtn = document.getElementById('playBtn');
+const pageIndicator = document.getElementById('pageIndicator');
+
+const slideTimes = Array.from(slides).map(s => parseFloat(s.dataset.time));
+let currentSlide = 0;
+
+function showSlide(idx) {
+  slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+  currentSlide = idx;
+  pageIndicator.textContent = `${idx + 1} / ${slides.length}`;
+}
+
+function togglePlay() {
+  if (audio.paused) { audio.play(); playBtn.textContent = '⏸'; }
+  else { audio.pause(); playBtn.textContent = '▶'; }
+}
+
+function nextSlide() {
+  if (currentSlide < slides.length - 1) {
+    showSlide(currentSlide + 1);
+    audio.currentTime = slideTimes[currentSlide];
+  }
+}
+
+function prevSlide() {
+  if (currentSlide > 0) {
+    showSlide(currentSlide - 1);
+    audio.currentTime = slideTimes[currentSlide];
+  }
+}
+
+function seekAudio(e) {
+  const rect = e.target.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  audio.currentTime = pct * audio.duration;
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+audio.addEventListener('timeupdate', () => {
+  const t = audio.currentTime;
+  const d = audio.duration || 1;
+  progressFill.style.width = (t / d * 100) + '%';
+  timerEl.textContent = `${formatTime(t)} / ${formatTime(d)}`;
+
+  for (let i = slideTimes.length - 1; i >= 0; i--) {
+    if (t >= slideTimes[i]) {
+      if (currentSlide !== i) showSlide(i);
+      break;
+    }
+  }
+});
+
+audio.addEventListener('ended', () => { playBtn.textContent = '▶'; });
+
+document.addEventListener('keydown', e => {
+  if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+  if (e.key === 'ArrowRight') nextSlide();
+  if (e.key === 'ArrowLeft') prevSlide();
+});
+</script>
+
+</body>
+</html>
