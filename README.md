@@ -10,7 +10,8 @@
 
 <p align="center">
   <a href="http://121.41.74.45/">项目展示</a> ·
-  <a href="http://121.41.74.45/demo">在线 Demo</a> ·
+  <a href="http://121.41.74.45/demo/">在线 Demo</a> ·
+  <a href="http://121.41.74.45/video/">产品视频</a> ·
   <a href="http://121.41.74.45/weplan_report.pdf">技术报告 PDF</a> ·
   <a href="http://121.41.74.45/design_doc.pdf">设计文档</a>
 </p>
@@ -117,9 +118,10 @@ WePlan 接受一句自然语言输入（如"今天下午带老婆孩子出去玩
 | 入口 | URL | 说明 |
 |------|-----|------|
 | 项目展示 | http://121.41.74.45/ | 产品介绍，14章节全动画 |
-| Demo | http://121.41.74.45/demo | 在线体验，支持预建案例和自定义输入 |
+| Demo | http://121.41.74.45/demo/ | 在线体验，支持预建案例和自定义输入 |
+| 产品视频 | http://121.41.74.45/video/ | MiniMax 语音口播 + 幻灯片演示 |
 | 群体投票 | http://121.41.74.45/vote?id={plan_id} | 家人/朋友投票页面 |
-| 技术报告 | http://121.41.74.45/weplan_report.pdf | 100页完整技术文档 |
+| 技术报告 | http://121.41.74.45/weplan_report.pdf | 完整技术文档 |
 | 设计文档 | http://121.41.74.45/design_doc.pdf | 2页设计文档（赛题要求） |
 | API | http://121.41.74.45/api/cases | 预建案例 JSON |
 

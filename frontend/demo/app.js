@@ -495,19 +495,83 @@ const DEMO_CASES = {
   },
 };
 
-/* ─── Timeline Rendering ─── */
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 5b – Radar Helpers (chart draw fn lives above DEMO_CASES)
+   ═══════════════════════════════════════════════════════════════ */
+
+function computePlanScores(plan) {
+  const tl = plan.timeline || [];
+  const acts = tl.filter(n => (n.nodeType || n.type) !== 'transport');
+  const rawCost = parseFloat(String(plan.totalCost).replace(/[^0-9.]/g, '')) || 300;
+  return [
+    Math.max(0.2, Math.min(1, 1.1 - rawCost / 600)),
+    Math.min(1, 0.45 + acts.length * 0.1),
+    Math.max(0.3, Math.min(1, 1.05 - tl.filter(n => (n.nodeType || n.type) === 'transport').length * 0.12)),
+    (() => {
+      const r = acts.map(n => parseFloat(n.rating) || 0).filter(v => v > 0);
+      return r.length ? Math.min(1, (r.reduce((a, b) => a + b) / r.length) / 5) : 0.7;
+    })(),
+    Math.min(1, 0.5 + new Set(acts.map(n => n.nodeType || n.type)).size * 0.14),
+  ].map(v => +v.toFixed(2));
+}
+
+function renderRadarLegend(plans) {
+  const wrapper = $('#radarCanvas')?.parentElement;
+  if (!wrapper) return;
+  wrapper.querySelectorAll('.radar-legend').forEach(e => e.remove());
+  const legend = document.createElement('div');
+  legend.className = 'radar-legend';
+  legend.style.cssText = 'display:flex;justify-content:center;gap:16px;margin-top:8px;font-size:12px;color:#64748B';
+  plans.forEach((p, i) => {
+    const c = PLAN_COLORS[i % PLAN_COLORS.length];
+    const item = document.createElement('span');
+    item.style.cssText = 'display:inline-flex;align-items:center;gap:4px;cursor:pointer';
+    item.innerHTML = `<span style="width:10px;height:10px;border-radius:50%;background:${c.stroke};display:inline-block"></span>${p.name}`;
+    item.onclick = () => switchPlan(i);
+    legend.appendChild(item);
+  });
+  wrapper.appendChild(legend);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 6 – Timeline Rendering
+   ═══════════════════════════════════════════════════════════════ */
+
+function _stars(r) {
+  if (!r) return '';
+  const v = parseFloat(r);
+  if (isNaN(v) || v <= 0) return '';
+  return '★'.repeat(Math.floor(v)) + (v % 1 >= 0.3 ? '½' : '');
+}
+
 function renderTimeline(plan) {
   const container = $('#planTimeline');
   if (!container) return;
   container.innerHTML = '';
   const tl = plan.timeline || [];
+  const typeColors = { transport: '#3182CE', dining: '#E53E3E', activity: '#38A169', rest: '#ECC94B' };
+
   tl.forEach((item, idx) => {
-    const colors = { transport: '#3182CE', dining: '#E53E3E', activity: '#38A169', rest: '#ECC94B' };
-    const dotColor = colors[item.nodeType || item.type] || '#FF6B35';
+    const nodeType = item.nodeType || item.type || 'activity';
+    const dotColor = typeColors[nodeType] || '#FF6B35';
     const featured = parseFloat(item.rating) >= 4.5;
+
+    let ratingsHTML = '';
+    if (item.rating && parseFloat(item.rating) > 0)
+      ratingsHTML += `<span class="rating-badge amap">⭐ 高德 ${_stars(item.rating)} ${item.rating}</span>`;
+    if (item.dianping_rating && parseFloat(item.dianping_rating) > 0)
+      ratingsHTML += `<span class="rating-badge dianping">📝 点评 ${_stars(item.dianping_rating)} ${item.dianping_rating}</span>`;
+    if (item.meituan_rating && parseFloat(item.meituan_rating) > 0)
+      ratingsHTML += `<span class="rating-badge meituan">🟡 美团 ${_stars(item.meituan_rating)} ${item.meituan_rating}</span>`;
+
+    const costLine = item.cost && item.cost !== '0'
+      ? `<div class="cost-line">💰 ¥${item.cost}/人${item.business_area ? ` · 📍 ${item.business_area}` : ''}</div>`
+      : (item.business_area ? `<div class="cost-line">📍 ${item.business_area}</div>` : '');
+
     const el = document.createElement('div');
     el.className = 'timeline-item';
-    el.style.animationDelay = `${idx * 0.1}s`;
+    el.style.animationDelay = `${idx * 0.08}s`;
     el.innerHTML = `
       <div class="timeline-dot" style="background:${dotColor}"></div>
       <div class="timeline-card${featured ? ' featured' : ''}">
@@ -516,23 +580,41 @@ function renderTimeline(plan) {
           <div class="timeline-time">${item.time || ''}</div>
         </div>
         <div class="timeline-subtitle">${item.subtitle || ''}</div>
-        ${item.rating ? `<div class="rating-row">
-          <span class="rating-badge amap">⭐ 高德 ${item.rating}</span>
-          ${item.dianping_rating ? `<span class="rating-badge dianping">📝 点评 ${item.dianping_rating}</span>` : ''}
-          ${item.meituan_rating ? `<span class="rating-badge meituan">🟡 美团 ${item.meituan_rating}</span>` : ''}
-        </div>` : ''}
-        ${item.cost && item.cost !== '0' ? `<div class="cost-line">💰 ¥${item.cost}/人${item.business_area ? ` · 📍 ${item.business_area}` : ''}</div>` : (item.business_area ? `<div class="cost-line">📍 ${item.business_area}</div>` : '')}
-        ${featured ? '<span class="badge-featured">精选</span>' : ''}
-        ${item.nodeType !== 'transport' ? `<button class="swap-btn" onclick="swapNode(${idx},'${(item.title || '').replace(/'/g, '')}')">🔄 换</button>` : ''}
+        ${ratingsHTML ? `<div class="rating-row">${ratingsHTML}</div>` : ''}
+        ${costLine}
+        ${featured ? '<span class="badge-featured">🏆 精选</span>' : ''}
+        ${nodeType !== 'transport' ? `<button class="swap-btn" data-idx="${idx}">🔄 换</button>` : ''}
       </div>`;
-    el.addEventListener('click', () => MapManager.highlightNode(idx));
+
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('.swap-btn')) return;
+      const wasExpanded = el.classList.contains('expanded');
+      $$('.timeline-item.expanded').forEach(x => x.classList.remove('expanded'));
+      if (!wasExpanded) el.classList.add('expanded');
+      MapManager.highlightNode(idx);
+    });
+
+    const swapBtn = el.querySelector('.swap-btn');
+    if (swapBtn) {
+      swapBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        swapNode(idx, item);
+      });
+    }
+
     container.appendChild(el);
   });
 }
 
-/* ─── Plan Rendering ─── */
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 7 – Plan Panel Rendering
+   ═══════════════════════════════════════════════════════════════ */
+
 function renderPlans(caseData) {
   if (!caseData || !caseData.plans) return;
+  state.currentCase = caseData;
+  state.currentPlanIdx = 0;
+
   const planEmpty = $('#planEmpty');
   const planContent = $('#planContent');
   if (planEmpty) planEmpty.style.display = 'none';
@@ -541,17 +623,16 @@ function renderPlans(caseData) {
   const tabs = $('#planTabs');
   if (tabs) {
     tabs.innerHTML = '';
+    const icons = ['🌟', '💡', '🎯'];
     caseData.plans.forEach((p, i) => {
       const btn = document.createElement('button');
       btn.className = 'plan-tab' + (i === 0 ? ' active' : '');
-      btn.textContent = p.name || `方案${String.fromCharCode(65 + i)}`;
+      btn.textContent = `${icons[i] || '📌'} ${p.name || `方案${String.fromCharCode(65 + i)}`}`;
       btn.onclick = () => switchPlan(i);
       tabs.appendChild(btn);
     });
   }
 
-  state.currentCase = caseData;
-  state.currentPlanIdx = 0;
   renderPlanContent(0);
 }
 
@@ -562,15 +643,16 @@ function renderPlanContent(idx) {
   renderTimeline(plan);
   MapManager.renderPlan(plan);
 
-  const allScores = state.currentCase.plans.map(p => p.scores || []);
+  const allScores = state.currentCase.plans.map(p => p.scores || computePlanScores(p));
   drawRadarChart($('#radarCanvas'), allScores, idx);
+  renderRadarLegend(state.currentCase.plans);
 
   const stats = $('#planStats');
   if (stats) {
     stats.innerHTML = `
       <div class="stat-item"><div class="stat-value">${plan.totalCost || '—'}</div><div class="stat-label">预计花费</div></div>
       <div class="stat-item"><div class="stat-value">${plan.duration || '—'}</div><div class="stat-label">总时长</div></div>
-      <div class="stat-item"><div class="stat-value">${plan.count || (plan.timeline || []).length} 项</div><div class="stat-label">活动数</div></div>`;
+      <div class="stat-item"><div class="stat-value">${plan.count || plan.timeline.length} 站</div><div class="stat-label">活动数</div></div>`;
   }
 }
 
@@ -580,16 +662,21 @@ function switchPlan(idx) {
   renderPlanContent(idx);
 }
 
-/* ─── Chat Functions ─── */
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 8 – Chat Functions
+   ═══════════════════════════════════════════════════════════════ */
+
 function addMessage(who, text, opts = {}) {
   const welcomeBlock = $('#welcomeBlock');
   if (welcomeBlock) welcomeBlock.style.display = 'none';
   const list = $('#messageList');
-  if (!list) return;
+  if (!list) return { el: null, bubble: null };
+
   const msg = document.createElement('div');
   msg.className = `message ${who}`;
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
+
   if (opts.typing) {
     bubble.innerHTML = '<span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>';
     msg.appendChild(bubble);
@@ -597,6 +684,7 @@ function addMessage(who, text, opts = {}) {
     list.scrollTop = list.scrollHeight;
     return { el: msg, bubble };
   }
+
   bubble.textContent = text;
   msg.appendChild(bubble);
   list.appendChild(msg);
@@ -608,53 +696,83 @@ async function typewriterEffect(bubble, text) {
   bubble.textContent = '';
   for (let i = 0; i < text.length; i++) {
     bubble.textContent += text[i];
+    const list = $('#messageList');
+    if (list) list.scrollTop = list.scrollHeight;
     if (i % 3 === 0) await sleep(20);
   }
 }
 
-/* ─── Agent Pipeline ─── */
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 9 – Agent Pipeline
+   ═══════════════════════════════════════════════════════════════ */
+
+const AGENT_PIPELINE_TEMPLATE = [
+  { key: 'orchestrator', name: 'Orchestrator', icon: '🎯', desc: '意图解析·任务分配' },
+  { key: 'context',      name: 'Context',      icon: '📋', desc: '环境感知·天气/位置/时间' },
+  { key: 'dining',       name: 'Dining',       icon: '🍽', desc: '餐厅搜索·口味匹配' },
+  { key: 'activity',     name: 'Activity',     icon: '🎪', desc: '活动推荐·场景筛选' },
+  { key: 'synthesizer',  name: 'Synthesizer',  icon: '🧩', desc: '方案编排·路线优化' },
+  { key: 'critic',       name: 'Critic',       icon: '🔍', desc: '质量校验·约束检查' },
+  { key: 'executor',     name: 'Executor',     icon: '⚡', desc: '预订执行·确认座位' },
+  { key: 'notifier',     name: 'Notifier',     icon: '🔔', desc: '通知推送·日程同步' },
+];
+
 function renderPipeline(agents, activeIdx) {
   const container = $('#thinkingPipeline');
   if (!container) return;
   container.innerHTML = '';
+
   agents.forEach((agent, idx) => {
     const node = document.createElement('div');
-    node.className = 'pipeline-node' + (idx < activeIdx ? ' done' : idx === activeIdx ? ' active' : '');
+    let status = idx < activeIdx ? ' done' : idx === activeIdx ? ' active' : '';
+    node.className = 'pipeline-node' + status;
     node.innerHTML = `<div class="pipeline-icon">${agent.icon}</div><div class="pipeline-name">${agent.name}</div>`;
-    if (idx < agents.length - 1) {
+    node.onclick = () => showAgentDetail(agent, idx, status.trim());
+
+    if (idx > 0) {
       const arrow = document.createElement('div');
       arrow.className = 'pipeline-arrow';
       arrow.textContent = '→';
-      container.appendChild(node);
       container.appendChild(arrow);
-    } else {
-      container.appendChild(node);
     }
+    container.appendChild(node);
   });
 }
 
-function showAgentDetail(agent) {
+function showAgentDetail(agent, idx, status) {
   const detail = $('#thinkingDetail');
   if (!detail) return;
+  const statusLabel = { done: '✅ 完成', active: '⚙️ 运行中', '': '⏳ 等待中' }[status || ''] || '';
   detail.innerHTML = `<div class="thinking-card">
-    <div class="thinking-card-header">${agent.icon} ${agent.name}</div>
-    <div class="thinking-card-body">${agent.thinking}</div>
+    <div class="thinking-card-header">${agent.icon} ${agent.name} <span style="font-size:12px;opacity:0.7;margin-left:8px">${statusLabel}</span></div>
+    <div class="thinking-card-body">${agent.thinking || agent.desc || ''}</div>
   </div>`;
 }
 
 async function animatePipeline(agents) {
   const panel = $('#thinkingPanel');
-  if (panel) panel.style.display = '';
+  const showThinking = $('#agentThinkingCheck')?.checked !== false;
+  if (showThinking && panel) panel.style.display = '';
 
-  for (let i = 0; i < agents.length; i++) {
-    renderPipeline(agents, i);
-    showAgentDetail(agents[i]);
+  const steps = agents.map(a => {
+    const tpl = AGENT_PIPELINE_TEMPLATE.find(t =>
+      t.name === a.name || t.key === (a.name || '').toLowerCase()
+    ) || {};
+    return { ...tpl, ...a };
+  });
+
+  for (let i = 0; i < steps.length; i++) {
+    renderPipeline(steps, i);
+    showAgentDetail(steps[i], i, 'active');
     await sleep(500 + Math.random() * 400);
   }
-  renderPipeline(agents, agents.length);
+  renderPipeline(steps, steps.length);
 }
 
-/* ─── Showcase Mode ─── */
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 10 – Showcase Mode (prebuilt demo)
+   ═══════════════════════════════════════════════════════════════ */
+
 async function playShowcase(caseKey) {
   if (state.isAnimating) return;
   state.isAnimating = true;
@@ -683,11 +801,102 @@ async function playShowcase(caseKey) {
   state.isAnimating = false;
 }
 
-/* ─── Live SSE Mode ─── */
+async function loadCasesFromAPI() {
+  try {
+    const resp = await fetch('/api/cases');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data.cases?.length) return;
+    const prompts = $('#presetPrompts');
+    data.cases.forEach(c => {
+      const chip = document.createElement('button');
+      chip.className = 'prompt-bubble';
+      chip.dataset.prompt = c.input || c.title;
+      chip.dataset.caseId = c.id;
+      const emojis = { family: '🎪', friends: '🎉', couple: '💑', solo: '🧘', rainy: '🌧️', culture: '🏛️' };
+      chip.textContent = `${emojis[c.scene_type] || '📍'} ${c.title}`;
+      chip.addEventListener('click', () => playShowcaseFromAPI(c.id));
+      if (prompts) prompts.appendChild(chip);
+    });
+  } catch (e) { /* API not available, use local demo cases */ }
+}
+
+async function loadCaseDetail(caseId) {
+  const resp = await fetch(`/api/cases/${caseId}`);
+  if (!resp.ok) throw new Error('Failed to load case');
+  return resp.json();
+}
+
+function convertAPICaseToLocal(apiCase) {
+  const plans = (apiCase.plans || []).map((p, i) => ({
+    name: p.name || p.title || `方案${String.fromCharCode(65 + i)}`,
+    title: p.title || p.name || `方案${String.fromCharCode(65 + i)}`,
+    subtitle: p.subtitle || p.description || '',
+    scores: p.scores ? (Array.isArray(p.scores) ? p.scores : Object.values(p.scores)).map(v => parseFloat(v) / (parseFloat(v) > 1 ? 5 : 1)) : null,
+    totalCost: p.total_cost ? `¥${p.total_cost}` : (p.totalCost || '—'),
+    duration: p.duration || p.total_duration_hours ? `${p.total_duration_hours}h` : '—',
+    count: (p.timeline || p.nodes || []).length,
+    timeline: (p.timeline || p.nodes || []).map(n => ({
+      time: n.time || n.time_start || n.start_time || '',
+      icon: n.icon || { activity: '🎪', dining: '🍽', transport: '🚗', rest: '☕' }[n.type || n.category || n.node_type] || '📍',
+      title: n.title || n.name || n.venue_name || '',
+      subtitle: n.subtitle || n.description || n.venue_address || '',
+      nodeType: n.type || n.node_type || n.category || 'activity',
+      location: n.location || '',
+      rating: n.rating || '',
+      dianping_rating: n.dianping_rating || '',
+      meituan_rating: n.meituan_rating || '',
+      cost: n.cost || n.cost_per_person || n.price || '',
+      business_area: n.business_area || '',
+    })),
+  }));
+  return {
+    userMessage: apiCase.input || apiCase.query || '',
+    aiReply: apiCase.aiReply || '方案已生成！',
+    plans,
+    agents: apiCase.agents || [],
+  };
+}
+
+async function playShowcaseFromAPI(caseId) {
+  if (state.isAnimating) return;
+  state.isAnimating = true;
+
+  addMessage('user', '加载预建方案...');
+  try {
+    const apiCase = await loadCaseDetail(caseId);
+    const local = convertAPICaseToLocal(apiCase);
+    if (local.agents?.length) await animatePipeline(local.agents);
+    const panel = $('#thinkingPanel');
+    if (panel) panel.style.display = 'none';
+    renderPlans(local);
+    addMessage('ai', `已加载方案，共 ${local.plans.length} 套选择 👉`);
+    saveHistory(local.userMessage || caseId, local.plans[0]?.title || '方案');
+  } catch (e) {
+    addMessage('ai', '加载失败，请稍后重试');
+    showToast('加载失败');
+  }
+  state.isAnimating = false;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 11 – Live Mode (SSE streaming to backend)
+   ═══════════════════════════════════════════════════════════════ */
+
 async function planLive(userInput) {
   state.mode = 'live';
   addMessage('user', userInput);
   const aiMsg = addMessage('ai', '', { typing: true });
+
+  const panel = $('#thinkingPanel');
+  const showThinking = $('#agentThinkingCheck')?.checked !== false;
+  if (showThinking && panel) {
+    panel.style.display = '';
+    const pipeEl = $('#thinkingPipeline');
+    if (pipeEl) pipeEl.innerHTML = '';
+    const detEl = $('#thinkingDetail');
+    if (detEl) detEl.innerHTML = '';
+  }
 
   try {
     const body = { input: userInput, city: state.city || '杭州' };
@@ -700,195 +909,318 @@ async function planLive(userInput) {
     });
 
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const reader = resp.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      for (const line of lines) {
-        if (line.startsWith('event:')) {
-          const eventType = line.slice(6).trim();
-          const nextLine = lines[lines.indexOf(line) + 1];
-          if (nextLine && nextLine.startsWith('data:')) {
+    if (resp.headers.get('content-type')?.includes('text/event-stream')) {
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        let currentEvent = '';
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            currentEvent = line.slice(6).trim();
+          } else if (line.startsWith('data:')) {
             try {
-              const data = JSON.parse(nextLine.slice(5).trim());
-              handleSSEEvent(eventType, data, aiMsg);
-            } catch {}
+              const data = JSON.parse(line.slice(5).trim());
+              handleSSEEvent(currentEvent, data, aiMsg);
+            } catch (e) { /* skip malformed JSON */ }
           }
         }
+      }
+    } else {
+      const data = await resp.json();
+      if (data.plans) {
+        if (panel) panel.style.display = 'none';
+        const converted = convertAPICaseToLocal(data);
+        renderPlans(converted);
+        if (aiMsg.bubble) aiMsg.bubble.textContent = `已生成 ${converted.plans.length} 套方案 👉`;
+        saveHistory(userInput, converted.plans[0]?.title || '方案');
       }
     }
   } catch (e) {
     console.warn('SSE failed, falling back to demo:', e);
+    if (aiMsg.bubble) aiMsg.bubble.textContent = '后端未连接，使用演示数据...';
+    showToast('无法连接后端，使用演示数据');
+    await sleep(400);
     matchAndPlayDemo(userInput);
   }
 }
 
+const _SSE_AGENT_ICONS = {
+  orchestrator: '🎯', context: '📋', dining: '🍽', activity: '🎪',
+  synthesizer: '🧩', critic: '🔍', executor: '⚡', notifier: '🔔',
+};
+
 function handleSSEEvent(eventType, data, aiMsg) {
+  const pipeline = $('#thinkingPipeline');
+  const detail = $('#thinkingDetail');
+
   switch (eventType) {
-    case 'agent_start':
+    case 'agent_start': {
+      const name = (data.agent || '').toLowerCase();
+      const icon = _SSE_AGENT_ICONS[name] || '⚙️';
+      if (pipeline) {
+        if (pipeline.children.length > 0) {
+          const arrow = document.createElement('div');
+          arrow.className = 'pipeline-arrow';
+          arrow.textContent = '→';
+          pipeline.appendChild(arrow);
+        }
+        const node = document.createElement('div');
+        node.className = 'pipeline-node active';
+        node.innerHTML = `<div class="pipeline-icon">${icon}</div><div class="pipeline-name">${data.agent}</div>`;
+        pipeline.appendChild(node);
+      }
+      if (aiMsg?.bubble) aiMsg.bubble.textContent = `${icon} ${data.agent} 启动中...`;
       break;
+    }
     case 'agent_thinking':
-      if (data.thought) showAgentDetail({ icon: '🤔', name: data.agent || '', thinking: data.thought });
+    case 'thinking': {
+      if (detail) detail.innerHTML = `<div class="thinking-card"><div class="thinking-card-body">${data.thought || data.text || '思考中...'}</div></div>`;
+      if (aiMsg?.bubble) aiMsg.bubble.textContent = data.thought || data.text || '思考中...';
       break;
-    case 'agent_complete':
+    }
+    case 'agent_complete': {
+      const nodes = pipeline?.querySelectorAll('.pipeline-node.active');
+      if (nodes?.length) {
+        const last = nodes[nodes.length - 1];
+        last.classList.remove('active');
+        last.classList.add('done');
+      }
       break;
-    case 'plan_ready':
-      if (aiMsg && aiMsg.bubble) aiMsg.bubble.textContent = '方案已生成！请在右侧面板查看 👉';
+    }
+    case 'plan_ready': {
+      const panel = $('#thinkingPanel');
+      if (panel) panel.style.display = 'none';
+      if (aiMsg?.bubble) aiMsg.bubble.textContent = '方案已生成！请在右侧面板查看 👉';
       if (data.plans) {
-        const converted = convertAPIPlans(data);
+        const converted = convertAPICaseToLocal(data);
         renderPlans(converted);
       }
       break;
-    case 'error':
-      if (aiMsg && aiMsg.bubble) aiMsg.bubble.textContent = `出了点问题：${data.message || '未知错误'}`;
+    }
+    case 'error': {
+      const panel = $('#thinkingPanel');
+      if (panel) panel.style.display = 'none';
+      const msg = data.message || '处理出错';
+      if (aiMsg?.bubble) aiMsg.bubble.textContent = `出了点问题：${msg}`;
+      showToast(msg);
       break;
+    }
+    case 'done': {
+      const panel = $('#thinkingPanel');
+      if (panel) panel.style.display = 'none';
+      break;
+    }
   }
 }
 
-function convertAPIPlans(apiData) {
-  const plans = (apiData.plans || []).map((p, i) => ({
-    name: p.title || `方案${String.fromCharCode(65 + i)}`,
-    title: p.title || `方案${String.fromCharCode(65 + i)}`,
-    subtitle: p.subtitle || p.description || '',
-    scores: p.scores ? Object.values(p.scores).map(v => parseFloat(v) / (parseFloat(v) > 1 ? 10 : 1)) : [0.7, 0.7, 0.7, 0.7, 0.7],
-    totalCost: p.total_cost ? `¥${p.total_cost}` : '—',
-    duration: p.duration || '—',
-    count: (p.timeline || p.nodes || []).length,
-    timeline: (p.timeline || p.nodes || []).map(n => ({
-      time: n.time || n.start_time || '',
-      icon: n.icon || '📌',
-      title: n.title || n.name || '',
-      subtitle: n.subtitle || n.description || '',
-      nodeType: n.type || n.node_type || 'activity',
-      location: n.location || '',
-      rating: n.rating || '',
-      dianping_rating: n.dianping_rating || '',
-      meituan_rating: n.meituan_rating || '',
-      cost: n.cost || n.price || '',
-      business_area: n.business_area || '',
-    })),
-  }));
-  return { plans };
-}
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 12 – Swap & Budget
+   ═══════════════════════════════════════════════════════════════ */
 
-function matchAndPlayDemo(input) {
-  const lower = input.toLowerCase();
-  if (/娃|孩子|家|亲子|宝宝|baby/.test(lower)) return playShowcase('family-park');
-  if (/朋友|聚|哥们|姐妹|同事|团建/.test(lower)) return playShowcase('friends-gathering');
-  if (/女朋友|男朋友|约会|浪漫|情侣|老婆|老公/.test(lower)) return playShowcase('couple-date');
-  if (/一个人|独处|安静|独自|发呆|solo/.test(lower)) return playShowcase('solo-relax');
-  if (/雨|室内|下雨|阴天/.test(lower)) return playShowcase('rainy-indoor');
-  if (/北京|故宫|胡同|798|颐和园/.test(lower)) return playShowcase('beijing-culture');
-  playShowcase('family-park');
-}
-
-/* ─── Swap & Budget ─── */
-async function swapNode(nodeIdx, currentTitle) {
-  showToast('正在搜索替代选项...');
+async function swapNode(nodeIdx, currentNode) {
+  if (!state.currentCase) return;
   const plan = state.currentCase.plans[state.currentPlanIdx];
+  const btn = $$('.swap-btn')[nodeIdx];
+  if (btn) { btn.textContent = '⏳'; btn.disabled = true; }
+
+  showToast('正在搜索替代选项...');
+
   try {
     const resp = await fetch('/api/swap', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ node_index: nodeIdx, plan: { timeline: plan.timeline, city: state.city || '杭州' } }),
+      body: JSON.stringify({
+        node_index: nodeIdx,
+        node_type: currentNode.nodeType || currentNode.type || 'activity',
+        plan: { timeline: plan.timeline, city: state.city || '杭州' },
+      }),
     });
-    const data = await resp.json();
-    if (data.success && data.node) {
-      Object.assign(plan.timeline[nodeIdx], { title: data.node.title, subtitle: data.node.subtitle, location: data.node.location || plan.timeline[nodeIdx].location, rating: data.node.rating, business_area: data.node.business_area });
-      renderPlanContent(state.currentPlanIdx);
-      showToast('已替换！');
-      return;
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.success && data.node) {
+        Object.assign(plan.timeline[nodeIdx], data.node);
+        renderPlanContent(state.currentPlanIdx);
+        showToast(`已替换: ${data.node.title}`);
+        return;
+      }
     }
-  } catch {}
-  const pool = ['星巴克臻选', 'COSTA咖啡', '太平洋咖啡', 'M Stand'];
-  plan.timeline[nodeIdx].title = pool[Math.floor(Math.random() * pool.length)];
-  plan.timeline[nodeIdx].subtitle = '本地推荐·评价不错';
-  renderPlanContent(state.currentPlanIdx);
-  showToast('已切换为替代选项');
+  } catch (e) { /* fallback to local pool */ }
+
+  const alts = _getSwapAlternatives(currentNode);
+  const pick = alts.find(a => a.title !== currentNode.title) || alts[0];
+  if (pick && pick.title !== currentNode.title) {
+    Object.assign(plan.timeline[nodeIdx], pick);
+    renderPlanContent(state.currentPlanIdx);
+    showToast(`已替换: ${pick.title}`);
+  } else {
+    showToast('暂无替换选项');
+  }
+  if (btn) { btn.textContent = '🔄 换'; btn.disabled = false; }
+}
+
+function _getSwapAlternatives(node) {
+  const pools = {
+    activity: [
+      { icon: '🏛', title: '浙江省博物馆', subtitle: '免费·文化探索', nodeType: 'activity', rating: '4.9', cost: '0', location: '120.145,30.254', business_area: '孤山' },
+      { icon: '🌅', title: '太子湾公园', subtitle: '免费·花园散步', nodeType: 'activity', rating: '4.7', cost: '0', location: '120.142,30.235', business_area: '太子湾' },
+      { icon: '⛲', title: '西湖音乐喷泉', subtitle: '夜间灯光秀', nodeType: 'activity', rating: '4.6', cost: '0', location: '120.153,30.248', business_area: '湖滨' },
+      { icon: '🥾', title: '九溪烟树徒步', subtitle: '山间溪流·天然氧吧', nodeType: 'activity', rating: '4.8', cost: '0', location: '120.118,30.212', business_area: '九溪' },
+    ],
+    dining: [
+      { icon: '🍽', title: '新白鹿餐厅', subtitle: '杭帮菜·性价比高', nodeType: 'dining', rating: '4.4', dianping_rating: '4.3', meituan_rating: '4.5', cost: '55', location: '120.168,30.277', business_area: '文化广场' },
+      { icon: '🍽', title: '知味观', subtitle: '百年老字号·杭州小吃', nodeType: 'dining', rating: '4.6', dianping_rating: '4.5', cost: '70', location: '120.170,30.247', business_area: '河坊街' },
+      { icon: '🍽', title: '外婆家', subtitle: '排队名店·家常菜', nodeType: 'dining', rating: '4.3', dianping_rating: '4.2', cost: '50', location: '120.171,30.260', business_area: '龙翔桥' },
+      { icon: '🍽', title: '弄堂里', subtitle: '本帮菜·怀旧氛围', nodeType: 'dining', rating: '4.5', cost: '85', location: '120.165,30.255', business_area: '南山路' },
+    ],
+    rest: [
+      { icon: '☕', title: '星巴克臻选', subtitle: '湖滨旗舰店', nodeType: 'rest', rating: '4.4', cost: '45', location: '120.168,30.252', business_area: '湖滨' },
+      { icon: '☕', title: 'Seesaw Coffee', subtitle: '精品咖啡·安静', nodeType: 'rest', rating: '4.6', cost: '40', location: '120.172,30.258', business_area: '延安路' },
+      { icon: '☕', title: 'M Stand', subtitle: '设计感咖啡馆·有插座', nodeType: 'rest', rating: '4.5', cost: '42', location: '120.166,30.274', business_area: '武林' },
+    ],
+  };
+  const type = node.nodeType || node.type || 'activity';
+  const pool = pools[type] || pools.activity;
+  return pool.sort(() => Math.random() - 0.5);
 }
 
 async function budgetAdjust(direction) {
-  showToast(direction === 'cheaper' ? '正在寻找更省钱的方案...' : '正在升级为更高端的方案...');
+  if (!state.currentCase) return;
   const plan = state.currentCase.plans[state.currentPlanIdx];
+  showToast(direction === 'cheaper' ? '💰 寻找更省钱方案...' : '✨ 升级体验中...');
+
   try {
     const resp = await fetch('/api/budget-adjust', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ direction, plan: { timeline: plan.timeline, city: state.city || '杭州' } }),
     });
-    const data = await resp.json();
-    if (data.success && data.plan) {
-      plan.timeline = data.plan.timeline;
-      renderPlanContent(state.currentPlanIdx);
-      showToast('方案已调整！');
-      return;
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.success && data.plan) {
+        plan.timeline = data.plan.timeline;
+        renderPlanContent(state.currentPlanIdx);
+        showToast(direction === 'cheaper' ? '已优化省钱！' : '已升级体验！');
+        return;
+      }
     }
-  } catch {}
-  const multiplier = direction === 'cheaper' ? 0.7 : 1.5;
-  plan.timeline.forEach(n => { if (n.cost) n.cost = String(Math.round(parseFloat(n.cost) * multiplier)); });
-  const totalNum = plan.timeline.reduce((s, n) => s + (parseFloat(n.cost) || 0), 0);
-  plan.totalCost = `¥${Math.round(totalNum)}`;
+  } catch (e) { /* fallback */ }
+
+  _localBudgetAdjust(plan, direction);
   renderPlanContent(state.currentPlanIdx);
-  showToast('预算已调整');
+  showToast(direction === 'cheaper' ? '已优化省钱！' : '已升级体验！');
 }
 
-/* ─── Execute & Share ─── */
+function _localBudgetAdjust(plan, direction) {
+  const multiplier = direction === 'cheaper' ? 0.7 : 1.5;
+  plan.timeline.forEach(n => {
+    if (n.cost && parseFloat(n.cost) > 0) {
+      n.cost = String(Math.round(parseFloat(n.cost) * multiplier));
+    }
+  });
+  const totalNum = plan.timeline.reduce((s, n) => s + (parseFloat(n.cost) || 0), 0);
+  plan.totalCost = `¥${Math.round(totalNum)}${String(plan.totalCost).includes('/人') ? '/人' : ''}`;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 13 – Execute & Share
+   ═══════════════════════════════════════════════════════════════ */
+
 async function executeAll() {
+  if (!state.currentCase) return;
   const modal = $('#executeModal');
   const body = $('#executeBody');
   if (!modal || !body) return;
   modal.style.display = 'flex';
 
   const plan = state.currentCase.plans[state.currentPlanIdx];
-  const steps = (plan.timeline || []).filter(n => n.nodeType !== 'transport');
+  const steps = (plan.timeline || []).filter(n => (n.nodeType || n.type) !== 'transport');
   body.innerHTML = '';
 
   for (const [idx, step] of steps.entries()) {
     const el = document.createElement('div');
     el.className = 'exec-item';
-    el.innerHTML = `<div class="exec-icon">${step.icon || '📌'}</div><div class="exec-info"><div class="exec-title">${step.title}</div><div class="exec-status pending">准备中...</div></div>`;
+    el.innerHTML = `
+      <div class="exec-icon">${step.icon || '📌'}</div>
+      <div class="exec-info">
+        <div class="exec-title">${step.title}</div>
+        <div class="exec-status pending">准备中...</div>
+      </div>`;
     body.appendChild(el);
     await sleep(600 + Math.random() * 400);
     el.querySelector('.exec-status').textContent = '✅ 已确认';
     el.querySelector('.exec-status').className = 'exec-status done';
   }
+
   await sleep(400);
   const doneEl = document.createElement('div');
   doneEl.className = 'exec-done';
   doneEl.innerHTML = '🎉 全部安排就绪！享受你的周末吧！';
   body.appendChild(doneEl);
-}
 
-function openShareModal() {
-  const modal = $('#shareModal');
-  const body = $('#shareBody');
-  if (!modal || !body || !state.currentCase) return;
-  const plan = state.currentCase.plans[state.currentPlanIdx];
-  const text = generateShareText(plan);
-  body.innerHTML = `
-    <div class="share-preview">${text.replace(/\n/g, '<br>')}</div>
-    <button class="action-btn primary" onclick="navigator.clipboard.writeText(document.querySelector('.share-preview').textContent).then(()=>showToast('已复制到剪贴板'))">📋 复制文字</button>`;
-  modal.style.display = 'flex';
+  await sleep(500);
+  const shareBlock = document.createElement('div');
+  shareBlock.style.cssText = 'margin-top:16px;padding:12px;background:var(--bg-secondary,#f1f5f9);border-radius:10px;font-size:13px;line-height:1.8;white-space:pre-wrap';
+  shareBlock.textContent = generateShareText(plan);
+  body.appendChild(shareBlock);
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'action-btn primary';
+  copyBtn.style.marginTop = '10px';
+  copyBtn.textContent = '📋 复制发给朋友';
+  copyBtn.onclick = () => {
+    navigator.clipboard?.writeText(shareBlock.textContent)
+      .then(() => showToast('已复制，粘贴给朋友吧！'));
+  };
+  body.appendChild(copyBtn);
 }
 
 function generateShareText(plan) {
   const lines = [`搞定了！周末安排：${plan.title || plan.name}`, ''];
   (plan.timeline || []).forEach(n => {
-    if (n.nodeType === 'transport') return;
+    if ((n.nodeType || n.type) === 'transport') return;
     lines.push(`${n.time || ''} ${n.icon || ''} ${n.title}${n.cost && n.cost !== '0' ? ` (¥${n.cost}/人)` : ''}`);
   });
-  lines.push('', `预计花费${plan.totalCost || '—'} · 时长${plan.duration || '—'}`);
-  lines.push('', '—— 由 WePlan AI 规划');
+  lines.push('', `💰 预计花费 ${plan.totalCost || '—'} · ⏱ 时长 ${plan.duration || '—'}`);
+  lines.push('', '我已经帮你都约好了！👌');
+  lines.push('—— 由 WePlan AI 规划');
   return lines.join('\n');
 }
 
-/* ─── Voice Input ─── */
+function openShareModal() {
+  if (!state.currentCase) return;
+  const modal = $('#shareModal');
+  const body = $('#shareBody');
+  if (!modal || !body) return;
+
+  const plan = state.currentCase.plans[state.currentPlanIdx];
+  const text = generateShareText(plan);
+  body.innerHTML = `
+    <div class="share-preview" style="padding:16px;background:var(--bg-secondary,#f1f5f9);border-radius:10px;font-size:13px;line-height:1.8;white-space:pre-wrap">${text}</div>
+    <div style="display:flex;gap:10px;margin-top:14px">
+      <button class="action-btn primary" id="copyShareText">📋 一键复制</button>
+      <button class="action-btn" id="closeShareBtn">关闭</button>
+    </div>`;
+  modal.style.display = 'flex';
+
+  body.querySelector('#copyShareText').onclick = () => {
+    navigator.clipboard?.writeText(text).then(() => showToast('文案已复制！'));
+  };
+  body.querySelector('#closeShareBtn').onclick = () => { modal.style.display = 'none'; };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 14 – Voice Input (Web Speech API)
+   ═══════════════════════════════════════════════════════════════ */
+
 function initVoiceInput() {
   const btn = $('#micBtn');
   if (!btn) return;
@@ -908,15 +1240,20 @@ function initVoiceInput() {
     recognition = new SpeechRecognition();
     recognition.lang = 'zh-CN';
     recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
+
     recognition.onresult = (e) => {
-      const text = e.results[0][0].transcript;
+      let transcript = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+      }
       const input = $('#chatInput');
-      if (input) input.value = text;
-      sendMessage();
+      if (input) input.value = transcript;
+      if (e.results[e.results.length - 1].isFinal) sendMessage();
     };
     recognition.onend = () => { isListening = false; btn.classList.remove('listening'); };
     recognition.onerror = () => { isListening = false; btn.classList.remove('listening'); };
+
     recognition.start();
     isListening = true;
     btn.classList.add('listening');
@@ -924,76 +1261,115 @@ function initVoiceInput() {
   });
 }
 
-/* ─── History ─── */
-function getHistory() { try { return JSON.parse(localStorage.getItem('weplan-history') || '[]'); } catch { return []; } }
-function saveHistory(query, title) {
-  const h = getHistory();
-  h.unshift({ query, title, time: new Date().toLocaleString('zh-CN'), ts: Date.now() });
-  localStorage.setItem('weplan-history', JSON.stringify(h.slice(0, 10)));
-}
-function renderHistory() {
-  const list = $('#historyList');
-  if (!list) return;
-  const h = getHistory();
-  if (h.length === 0) { list.innerHTML = '<div class="history-empty">暂无历史记录</div>'; return; }
-  list.innerHTML = h.map(item => `
-    <div class="history-item" onclick="document.querySelector('#chatInput').value='${item.query.replace(/'/g, '')}';document.querySelector('#historyDrawer').style.display='none';sendMessage()">
-      <div class="history-query">${item.query}</div>
-      <div class="history-meta">${item.title} · ${item.time}</div>
-    </div>`).join('');
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 15 – History (localStorage)
+   ═══════════════════════════════════════════════════════════════ */
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem('weplan-history') || '[]'); } catch { return []; }
 }
 
-/* ─── GPS Location ─── */
+function saveHistory(query, planTitle) {
+  const h = getHistory();
+  h.unshift({
+    query,
+    title: planTitle,
+    time: new Date().toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    timestamp: Date.now(),
+  });
+  if (h.length > 10) h.length = 10;
+  localStorage.setItem('weplan-history', JSON.stringify(h));
+}
+
+function renderHistory() {
+  const drawer = $('#historyDrawer');
+  const list = $('#historyList');
+  if (!drawer || !list) return;
+
+  const h = getHistory();
+  if (h.length === 0) {
+    list.innerHTML = '<div class="history-empty" style="padding:32px;text-align:center;color:#94a3b8">暂无历史记录</div>';
+  } else {
+    list.innerHTML = '';
+    h.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'history-item';
+      el.innerHTML = `<div class="history-query">${item.query}</div><div class="history-meta">${item.title} · ${item.time}</div>`;
+      el.onclick = () => {
+        drawer.style.display = 'none';
+        const input = $('#chatInput');
+        if (input) input.value = item.query;
+        sendMessage();
+      };
+      list.appendChild(el);
+    });
+  }
+  drawer.style.display = 'flex';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 16 – GPS Location
+   ═══════════════════════════════════════════════════════════════ */
+
 async function initLocation() {
+  const label = $('#cityLabel');
+  if (label) label.textContent = '定位中...';
+
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         state.location = { lng: pos.coords.longitude, lat: pos.coords.latitude };
+        MapManager.setCenter(state.location.lng, state.location.lat, 13);
         try {
-          if (typeof AMap !== 'undefined') {
+          if (typeof AMap !== 'undefined' && AMap.Geocoder) {
             const geocoder = new AMap.Geocoder();
             geocoder.getAddress([state.location.lng, state.location.lat], (status, result) => {
               if (status === 'complete' && result.regeocode) {
-                const city = result.regeocode.addressComponent.city || result.regeocode.addressComponent.province;
-                if (city) { state.city = city.replace(/市$/, ''); updateCityLabel(); }
+                const addr = result.regeocode.addressComponent;
+                state.city = (addr.city || addr.province || '杭州').replace(/市$/, '');
+                const district = addr.district || '';
+                if (label) label.textContent = district ? `${state.city}·${district}` : state.city;
               }
             });
           }
-        } catch {}
-        MapManager.setCenter(state.location.lng, state.location.lat, 13);
+        } catch (e) {
+          state.city = '杭州';
+          if (label) label.textContent = '杭州';
+        }
       },
       () => ipFallbackLocation(),
-      { timeout: 5000 }
+      { timeout: 5000, enableHighAccuracy: false }
     );
   } else {
-    ipFallbackLocation();
+    await ipFallbackLocation();
   }
 }
 
 async function ipFallbackLocation() {
+  const label = $('#cityLabel');
   try {
     const resp = await fetch('/api/locate');
-    const data = await resp.json();
-    state.city = (data.city || '杭州').replace(/市$/, '');
-    if (data.location) {
-      const [lng, lat] = data.location.split(',').map(Number);
-      state.location = { lng, lat };
-      MapManager.setCenter(lng, lat, 13);
+    if (resp.ok) {
+      const data = await resp.json();
+      state.city = (data.city || '杭州').replace(/市$/, '');
+      if (label) label.textContent = state.city;
+      if (data.location) {
+        const [lng, lat] = data.location.split(',').map(Number);
+        state.location = { lng, lat };
+        MapManager.setCenter(lng, lat, 13);
+      }
+      return;
     }
-    updateCityLabel();
-  } catch {
-    state.city = '杭州';
-    updateCityLabel();
-  }
+  } catch (e) { /* fallback below */ }
+  state.city = '杭州';
+  if (label) label.textContent = '杭州';
 }
 
-function updateCityLabel() {
-  const el = $('#cityLabel');
-  if (el) el.textContent = state.city || '杭州';
-}
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 17 – Toast / Theme / City Selector
+   ═══════════════════════════════════════════════════════════════ */
 
-/* ─── Toast, Theme ─── */
-function showToast(msg, duration = 2000) {
+function showToast(msg, duration = 2200) {
   const toast = $('#toast');
   if (!toast) return;
   toast.textContent = msg;
@@ -1013,13 +1389,53 @@ function initTheme() {
   document.documentElement.setAttribute('data-theme', state.theme);
 }
 
-/* ─── Send Message ─── */
+function initCitySelector() {
+  const badge = $('#locationDisplay');
+  if (!badge) return;
+  badge.style.cursor = 'pointer';
+  badge.addEventListener('click', () => {
+    const city = prompt('输入城市名称：', state.city || '杭州');
+    if (city?.trim()) {
+      state.city = city.trim();
+      const label = $('#cityLabel');
+      if (label) label.textContent = state.city;
+      showToast(`已切换到 ${state.city}`);
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 18 – Initialization
+   ═══════════════════════════════════════════════════════════════ */
+
+function initChatInput() {
+  const input = $('#chatInput');
+  const sendBtn = $('#sendBtn');
+
+  if (input) {
+    if (input.tagName === 'TEXTAREA') {
+      input.addEventListener('input', () => {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+      });
+    }
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  }
+  if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+}
+
 function sendMessage() {
   const input = $('#chatInput');
   if (!input) return;
   const text = input.value.trim();
   if (!text || state.isAnimating) return;
   input.value = '';
+  if (input.tagName === 'TEXTAREA') input.style.height = '';
 
   const panel = $('#thinkingPanel');
   if (panel) panel.style.display = '';
@@ -1027,19 +1443,22 @@ function sendMessage() {
   planLive(text);
 }
 
-/* ─── Initialization ─── */
-function initChatInput() {
-  const input = $('#chatInput');
-  const sendBtn = $('#sendBtn');
-  if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-  if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+function matchAndPlayDemo(input) {
+  const lower = input.toLowerCase();
+  if (/娃|孩子|家|亲子|宝宝|baby|小朋友/.test(lower)) return playShowcase('family-park');
+  if (/朋友|聚|哥们|姐妹|同事|团建|兄弟|同学/.test(lower)) return playShowcase('friends-gathering');
+  if (/女朋友|男朋友|约会|浪漫|情侣|老婆|老公/.test(lower)) return playShowcase('couple-date');
+  if (/一个人|独处|安静|独自|发呆|solo|放松|散心/.test(lower)) return playShowcase('solo-relax');
+  if (/雨|室内|下雨|阴天|台风/.test(lower)) return playShowcase('rainy-indoor');
+  if (/北京|故宫|胡同|798|颐和园|文化/.test(lower)) return playShowcase('beijing-culture');
+  playShowcase('family-park');
 }
 
 function initPresetButtons() {
   $$('.prompt-bubble').forEach(btn => {
     btn.addEventListener('click', () => {
       const prompt = btn.getAttribute('data-prompt');
-      if (!prompt) return;
+      if (!prompt || state.isAnimating) return;
       matchAndPlayDemo(prompt);
     });
   });
@@ -1058,15 +1477,10 @@ function initThinkingPanel() {
 }
 
 function initActionButtons() {
-  const executeBtn = $('#executeBtn');
-  const shareBtn = $('#shareBtn');
-  const cheaperBtn = $('#cheaperBtn');
-  const premiumBtn = $('#premiumBtn');
-
-  if (executeBtn) executeBtn.addEventListener('click', executeAll);
-  if (shareBtn) shareBtn.addEventListener('click', openShareModal);
-  if (cheaperBtn) cheaperBtn.addEventListener('click', () => budgetAdjust('cheaper'));
-  if (premiumBtn) premiumBtn.addEventListener('click', () => budgetAdjust('premium'));
+  $('#executeBtn')?.addEventListener('click', executeAll);
+  $('#shareBtn')?.addEventListener('click', openShareModal);
+  $('#cheaperBtn')?.addEventListener('click', () => budgetAdjust('cheaper'));
+  $('#premiumBtn')?.addEventListener('click', () => budgetAdjust('premium'));
 
   $$('.modal-close').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1078,14 +1492,41 @@ function initActionButtons() {
   $$('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.style.display = 'none'; });
   });
+
+  $('#voteSubmit')?.addEventListener('click', () => {
+    showToast('感谢你的反馈！');
+    const modal = $('#voteModal');
+    if (modal) modal.style.display = 'none';
+  });
+
+  $('#copyLink')?.addEventListener('click', () => {
+    navigator.clipboard?.writeText(window.location.href)
+      .then(() => showToast('链接已复制！'));
+  });
 }
 
-function initHistoryBtn() {
-  const btn = $('#historyBtn');
-  const drawer = $('#historyDrawer');
-  if (btn && drawer) {
-    btn.addEventListener('click', () => { renderHistory(); drawer.style.display = 'flex'; });
-  }
+function initClearChat() {
+  $('#clearChatBtn')?.addEventListener('click', () => {
+    const list = $('#messageList');
+    if (list) list.innerHTML = '';
+    const welcome = $('#welcomeBlock');
+    if (welcome) welcome.style.display = '';
+    const planContent = $('#planContent');
+    const planEmpty = $('#planEmpty');
+    if (planContent) planContent.style.display = 'none';
+    if (planEmpty) planEmpty.style.display = '';
+    const panel = $('#thinkingPanel');
+    if (panel) { panel.style.display = 'none'; }
+    const pipeEl = $('#thinkingPipeline');
+    if (pipeEl) pipeEl.innerHTML = '';
+    const detEl = $('#thinkingDetail');
+    if (detEl) detEl.innerHTML = '';
+    MapManager.clear();
+    state.currentCase = null;
+    state.currentPlanIdx = 0;
+    state.isAnimating = false;
+    showToast('已清空');
+  });
 }
 
 function initMobileTabs() {
@@ -1107,6 +1548,14 @@ function initMobileTabs() {
   });
 }
 
+function initHistoryBtn() {
+  const btn = $('#historyBtn');
+  const drawer = $('#historyDrawer');
+  if (btn && drawer) {
+    btn.addEventListener('click', () => { renderHistory(); drawer.style.display = 'flex'; });
+  }
+}
+
 function initAgentThinkingToggle() {
   const check = $('#agentThinkingCheck');
   const panel = $('#thinkingPanel');
@@ -1117,17 +1566,6 @@ function initAgentThinkingToggle() {
   }
 }
 
-function initCityClick() {
-  const badge = $('#locationDisplay');
-  if (badge) {
-    badge.addEventListener('click', () => {
-      const newCity = prompt('输入城市名称：', state.city || '杭州');
-      if (newCity) { state.city = newCity.trim(); updateCityLabel(); showToast(`已切换到${state.city}`); }
-    });
-    badge.style.cursor = 'pointer';
-  }
-}
-
 async function init() {
   initTheme();
   initChatInput();
@@ -1135,10 +1573,11 @@ async function init() {
   initVoiceInput();
   initThinkingPanel();
   initActionButtons();
+  initClearChat();
   initHistoryBtn();
   initMobileTabs();
   initAgentThinkingToggle();
-  initCityClick();
+  initCitySelector();
 
   const themeBtn = $('#themeToggle');
   if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
@@ -1146,6 +1585,7 @@ async function init() {
   setTimeout(() => {
     MapManager.init();
     initLocation();
+    loadCasesFromAPI();
   }, 500);
 }
 
