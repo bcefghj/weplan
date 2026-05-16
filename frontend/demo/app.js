@@ -37,7 +37,98 @@ const state = {
   votes: {}
 };
 
-// ─── 预建案例数据 ───
+// ─── 预建案例数据（从后端API加载 + 本地fallback） ───
+let API_CASES = {};     // 从 /api/cases/:id 加载的完整案例
+let API_CASE_LIST = []; // 案例列表
+
+async function loadCasesFromAPI() {
+  try {
+    const resp = await fetch('/api/cases');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    API_CASE_LIST = data.cases || [];
+    renderPresetButtons();
+  } catch (e) {
+    console.warn('Failed to load cases from API:', e);
+  }
+}
+
+async function loadCaseDetail(caseId) {
+  if (API_CASES[caseId]) return API_CASES[caseId];
+  try {
+    const resp = await fetch(`/api/cases/${caseId}`);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    API_CASES[caseId] = data;
+    return data;
+  } catch (e) {
+    console.warn('Failed to load case detail:', e);
+    return null;
+  }
+}
+
+function convertAPICaseToLocal(apiCase) {
+  if (!apiCase || !apiCase.plans) return null;
+  const agents = (apiCase.agent_thinking || []).map(a => ({
+    name: a.agent.charAt(0).toUpperCase() + a.agent.slice(1),
+    icon: { orchestrator: '🎯', context: '📋', dining: '🍽', activity: '🎪', synthesizer: '🧩', critic: '🔍' }[a.agent] || '⚙️',
+    thinking: (a.thoughts || []).join('\n')
+  }));
+
+  const plans = apiCase.plans.map(p => ({
+    name: p.name || p.id || '方案',
+    title: p.name || '推荐方案',
+    subtitle: p.style || '',
+    scores: {
+      cost: (p.scores?.cost || 70) / 100,
+      fun: (p.scores?.fun || 70) / 100,
+      convenience: (p.scores?.convenience || 70) / 100,
+      fit: (p.scores?.fit || 70) / 100,
+      uniqueness: (p.scores?.uniqueness || 70) / 100,
+    },
+    totalCost: `¥${p.total_cost || '?'}`,
+    duration: `${p.total_duration_hours || '?'}h`,
+    count: (p.nodes || []).length,
+    timeline: (p.nodes || []).map(n => ({
+      time: n.time || n.id || '',
+      icon: { transport: '🚗', activity: '🎪', dining: '🍽', rest: '☕' }[n.type] || '📍',
+      title: n.title || '',
+      subtitle: n.subtitle || '',
+      tags: [
+        n.cost ? { text: `¥${n.cost}`, type: 'price' } : null,
+        n.status === 'reserved' ? { text: '已预约', type: 'booked' } : null,
+      ].filter(Boolean),
+      detail: n.subtitle || ''
+    }))
+  }));
+
+  return {
+    id: apiCase.id,
+    userMessage: apiCase.input || '',
+    aiReply: `收到！正在为你规划「${apiCase.title}」🎯\n\n${apiCase.subtitle || ''}\n\nAgent 团队开始工作...`,
+    agents: agents.length ? agents : AGENT_PIPELINE_TEMPLATE.map(a => ({ ...a, thinking: '正在分析...' })),
+    plans: plans
+  };
+}
+
+function renderPresetButtons() {
+  const container = document.querySelector('.preset-buttons');
+  if (!container || !API_CASE_LIST.length) return;
+  container.innerHTML = '';
+  const emojis = { family: '👨‍👩‍👧', friends: '👫', couple: '💑', solo: '🧘', umbrella: '🌧️' };
+  API_CASE_LIST.forEach(c => {
+    const btn = h('button', {
+      className: 'preset-btn',
+      dataset: { case: c.id },
+      onClick: () => playShowcaseFromAPI(c.id)
+    }, [
+      h('span', { className: 'preset-emoji', textContent: emojis[c.cover_emoji] || emojis[c.scene_type] || '🗓' }),
+      h('span', { className: 'preset-text', textContent: c.title })
+    ]);
+    container.appendChild(btn);
+  });
+}
+
 const PREBUILT_CASES = {
   'family-park': {
     id: 'family-park',
@@ -706,7 +797,51 @@ async function animatePipeline(agents) {
   $('#thinkingBarStatus').textContent = '全部完成 ✅';
 }
 
-// ─── 展示模式 — 预建案例播放 ───
+// ─── 展示模式 — 从API加载预建案例 ───
+async function playShowcaseFromAPI(caseId) {
+  if (state.isAnimating) return;
+  state.isAnimating = true;
+
+  const apiCase = await loadCaseDetail(caseId);
+  if (!apiCase) {
+    showToast('案例加载失败，请稍后重试');
+    state.isAnimating = false;
+    return;
+  }
+
+  const caseData = convertAPICaseToLocal(apiCase);
+  if (!caseData || !caseData.plans.length) {
+    showToast('案例数据格式异常');
+    state.isAnimating = false;
+    return;
+  }
+
+  $('#presetScenes').style.display = 'none';
+  $('#thinkingPanel').classList.add('expanded');
+  state.thinkingExpanded = true;
+
+  addMessage('user', caseData.userMessage);
+  await sleep(500);
+
+  const aiMsgPromise = new Promise(resolve => {
+    const el = addMessage('ai', '', { typing: false });
+    const bubble = el.querySelector('.message-bubble');
+    typewriterEffect(bubble, caseData.aiReply).then(resolve);
+  });
+
+  await sleep(300);
+  await animatePipeline(caseData.agents);
+  await aiMsgPromise;
+  await sleep(400);
+
+  addMessage('ai', `方案已生成！为你准备了${caseData.plans.length}套差异化方案，请在右侧面板查看和对比 👉`);
+  await sleep(300);
+
+  renderPlans(caseData);
+  state.isAnimating = false;
+}
+
+// ─── 展示模式 — 预建案例播放（本地硬编码fallback） ───
 async function playShowcase(caseKey) {
   if (state.isAnimating) return;
   state.isAnimating = true;
@@ -754,12 +889,17 @@ async function planLive(userInput) {
   $('#thinkingBarStatus').textContent = '正在连接 Agent...';
 
   try {
-    const resp = await fetch(`/api/plan?input=${encodeURIComponent(userInput)}`);
+    const resp = await fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: userInput, user_id: 'demo_user' })
+    });
 
     if (resp.headers.get('content-type')?.includes('text/event-stream')) {
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let currentAgentIdx = 0;
 
       while (true) {
         const { value, done } = await reader.read();
@@ -768,12 +908,17 @@ async function planLive(userInput) {
         const lines = buffer.split('\n');
         buffer = lines.pop();
 
+        let currentEvent = '';
         for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            handleSSEEvent(data);
-          } catch (e) { /* skip malformed events */ }
+          if (line.startsWith('event: ')) {
+            currentEvent = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              handleSSEEvent(currentEvent, data, thinkingMsg);
+              if (currentEvent === 'agent_start') currentAgentIdx++;
+            } catch (e) { /* skip malformed events */ }
+          }
         }
       }
     } else {
@@ -792,28 +937,73 @@ async function planLive(userInput) {
   }
 }
 
-function handleSSEEvent(data) {
-  switch (data.type) {
-    case 'agent_start':
-      renderPipeline(data.agents || AGENT_PIPELINE_TEMPLATE, data.agentIdx || 0);
-      $('#thinkingBarStatus').textContent = `${data.agentName || 'Agent'} 启动中...`;
+function handleSSEEvent(eventType, data, thinkingMsg) {
+  const AGENT_ICONS = { orchestrator: '🎯', context: '📋', dining: '🍽', activity: '🎪', synthesizer: '🧩', critic: '🔍', executor: '⚡', notifier: '🔔' };
+
+  switch (eventType) {
+    case 'agent_start': {
+      const agentName = data.agent || 'Agent';
+      $('#thinkingBarStatus').textContent = `${AGENT_ICONS[agentName] || '⚙️'} ${agentName} 启动中...`;
       break;
-    case 'agent_thinking':
+    }
+    case 'agent_thinking': {
+      const agentName = data.agent || 'Agent';
       showAgentDetail(
-        { name: data.agentName, icon: data.agentIcon, thinking: data.content },
-        data.agentIdx,
-        'running'
+        { name: agentName, icon: AGENT_ICONS[agentName] || '⚙️', thinking: data.thought || '' },
+        0, 'running'
       );
       break;
-    case 'agent_complete':
-      renderPipeline(data.agents || AGENT_PIPELINE_TEMPLATE, (data.agentIdx || 0) + 1);
+    }
+    case 'agent_complete': {
+      const agentName = data.agent || 'Agent';
+      $('#thinkingBarStatus').textContent = `${AGENT_ICONS[agentName] || '✅'} ${agentName} 完成`;
       break;
-    case 'plan_ready':
-      renderPlans(data);
-      addMessage('ai', '方案已就绪！请在右侧面板查看 🎯');
+    }
+    case 'plan_ready': {
+      if (data.plans) {
+        const localCase = {
+          plans: data.plans.map((p, idx) => ({
+            name: p.title || `方案 ${String.fromCharCode(65 + idx)}`,
+            title: p.title || `方案 ${String.fromCharCode(65 + idx)}`,
+            subtitle: p.summary || p.highlight || '',
+            scores: {
+              cost: ((p.score?.cost || 70) / 100),
+              fun: ((p.score?.fun || 70) / 100),
+              convenience: ((p.score?.convenience || 70) / 100),
+              fit: ((p.score?.fit || 70) / 100),
+              uniqueness: ((p.score?.uniqueness || 70) / 100),
+            },
+            totalCost: `¥${p.total_cost_per_person || '?'}/人`,
+            duration: `${p.total_duration_hours || '?'}h`,
+            count: (p.nodes || []).length,
+            timeline: (p.nodes || []).map(n => ({
+              time: n.time_start || '',
+              icon: { activity: '🎪', dining: '🍽', transport: '🚗', rest: '☕' }[n.category] || '📍',
+              title: n.title || n.venue_name || '',
+              subtitle: n.description || n.venue_address || '',
+              tags: [
+                n.cost_per_person ? { text: `¥${n.cost_per_person}/人`, type: 'price' } : null,
+                n.booking_status === 'confirmed' ? { text: '已预约', type: 'booked' } : null,
+              ].filter(Boolean),
+              detail: n.description || ''
+            }))
+          }))
+        };
+        renderPlans(localCase);
+        if (thinkingMsg) {
+          thinkingMsg.querySelector('.message-bubble').textContent = '方案已生成，请查看右侧面板！ 🎯';
+        }
+        addMessage('ai', '方案已就绪！请在右侧面板查看 🎯');
+      }
       break;
-    case 'message':
-      addMessage('ai', data.content, { typing: true });
+    }
+    case 'error':
+      if (thinkingMsg) {
+        thinkingMsg.querySelector('.message-bubble').innerHTML = `⚠️ ${data.message || '处理出错'}<br><small>您可以点击预设场景按钮体验展示模式。</small>`;
+      }
+      break;
+    case 'done':
+      $('#thinkingBarStatus').textContent = '全部完成 ✅';
       break;
   }
 }
@@ -1023,7 +1213,7 @@ function initPresetButtons() {
       if (PREBUILT_CASES[caseKey]) {
         playShowcase(caseKey);
       } else {
-        showToast('此场景案例开发中，敬请期待！');
+        playShowcaseFromAPI(caseKey);
       }
     });
   });
@@ -1146,6 +1336,7 @@ function init() {
   initActionButtons();
   initClearChat();
   initMobileTabs();
+  loadCasesFromAPI();
 }
 
 document.addEventListener('DOMContentLoaded', init);
