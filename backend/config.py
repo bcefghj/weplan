@@ -8,7 +8,7 @@ load_dotenv(_env_path)
 
 # ── MiniMax M2.7 配置 ──
 MINIMAX_API_KEY = os.getenv("MINIMAX_API_KEY", "")
-MINIMAX_BASE_URL = "https://api.minimax.io/v1"
+MINIMAX_BASE_URL = "https://api.minimax.chat/v1"
 MINIMAX_MODEL = "MiniMax-M2.7"
 
 # ── 高德地图配置 ──

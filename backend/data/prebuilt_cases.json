@@ -12,10 +12,13 @@
       "scene_type": "family",
       "city": "杭州",
       "group_size": 3,
+      "group_composition": ["adult_male", "adult_female", "child_5"],
       "duration_hours": 4,
-      "child_age": 5,
-      "dietary_requirements": ["低卡", "健康"],
-      "start_time": "14:00"
+      "time_start": "14:00",
+      "budget_total": 500,
+      "constraints": ["child_friendly", "low_calorie_options", "nearby"],
+      "weather": "sunny",
+      "preferences": ["亲子", "轻食", "户外"]
     },
     "agent_thinking": [
       {
@@ -23,59 +26,66 @@
         "status": "complete",
         "duration_ms": 850,
         "thoughts": [
-          "解析到家庭场景：3人出行（夫妻+5岁孩子）",
-          "关键约束：孩子5岁需亲子友好场所，老婆减肥需低卡餐厅",
-          "时间窗口：下午约4小时",
-          "分发任务给 Context / Dining / Activity Agent"
+          "解析到家庭场景：1大人+1减肥妈妈+1个5岁小孩",
+          "关键约束：孩子5岁需亲子友好、老婆减肥需低卡选项、别离家太远",
+          "时间：下午半天约4小时",
+          "分发任务给 context_agent、dining_agent、activity_agent"
         ]
       },
       {
-        "agent": "context",
+        "agent": "context_agent",
         "status": "complete",
-        "duration_ms": 320,
+        "duration_ms": 620,
         "thoughts": [
-          "查询杭州天气：晴，28°C，适合户外",
-          "当前时间周六09:00，出发14:00"
+          "查询天气：杭州今日晴，28°C，适合户外",
+          "当前时间14:00，日落约18:30，户外活动时间充裕",
+          "定位用户在城西，推荐城西/西湖周边场所",
+          "今日非节假日，各景点预计不拥挤"
         ]
       },
       {
-        "agent": "dining",
+        "agent": "dining_agent",
         "status": "complete",
         "duration_ms": 1200,
         "thoughts": [
-          "搜索条件：儿童友好 + 低卡轻食 + 西湖区",
-          "高德POI返回23家，筛选后Top5",
-          "优选：素匠泰式(4.7分)、绿茶(4.6分)、外婆家轻食(4.5分)"
+          "妈妈减肥 → 优先轻食/沙拉餐厅，需有低卡选项",
+          "5岁小孩 → 需要有儿童餐或儿童友好的餐厅",
+          "筛选条件：child_friendly=true AND low_calorie_options=true",
+          "匹配到：gaga鲜语、素匠泰式、Wagas、哺哺亲子餐厅",
+          "备选火锅：海底捞（有儿童区但不适合减肥）→ 放入方案C"
         ]
       },
       {
-        "agent": "activity",
+        "agent": "activity_agent",
         "status": "complete",
-        "duration_ms": 980,
+        "duration_ms": 1100,
         "thoughts": [
-          "搜索条件：适合5岁儿童 + 3km内 + 亲子友好",
-          "高德POI返回18家，筛选后Top5候选",
-          "嘟嘟城(4.8)、浙江自然博物馆(4.9)、西湖音乐喷泉(4.7)"
+          "5岁适合：儿童乐园、海洋公园、少儿公园、博物馆",
+          "晴天户外优先：少年儿童公园、西湖骑行",
+          "室内备选：嘟嘟城、Do都城",
+          "按距离和评分综合排序"
         ]
       },
       {
         "agent": "synthesizer",
         "status": "complete",
-        "duration_ms": 2100,
+        "duration_ms": 900,
         "thoughts": [
-          "生成3个备选方案，分别对应不同风格",
-          "方案A(亲子乐园线)：嘟嘟城+素匠+音乐喷泉",
-          "方案B(博物馆线)：自然博物馆+绿茶+太子湾",
-          "方案C(商场线)：万象城亲子乐园+外婆家轻食"
+          "方案A：亲子乐园+轻食 → 经济型，孩子开心指数最高",
+          "方案B：博物馆+亲子餐厅 → 教育型，寓教于乐",
+          "方案C：商场一站式 → 舒适型，下雨也能用",
+          "三方案均控制在4小时内，距离城西15分钟车程内"
         ]
       },
       {
         "agent": "critic",
         "status": "complete",
-        "duration_ms": 150,
+        "duration_ms": 500,
         "thoughts": [
-          "校验3个方案：全部通过8项检查",
-          "方案A性价比最优，方案B教育意义最强，方案C天气兜底最好"
+          "方案A评分最高：亲子适配度10/10，成本合理",
+          "方案B稍弱：5岁对博物馆可能兴趣有限，建议选自然博物馆",
+          "方案C保底：但天气好不推荐窝在商场",
+          "所有方案均满足减肥约束和亲子约束"
         ]
       }
     ],
@@ -84,339 +94,260 @@
         "id": "plan_a",
         "name": "亲子乐园 · 轻松自在",
         "style": "经济型",
-        "total_cost": 475,
+        "total_cost": 356,
         "total_duration_hours": 4.0,
-        "scores": { "cost": 8, "fun": 9, "convenience": 8, "fit": 10, "uniqueness": 6 },
+        "scores": {"cost": 8, "fun": 9, "convenience": 8, "fit": 10, "uniqueness": 6},
         "nodes": [
-          { "id": "n1", "time": "14:00", "duration_min": 15, "type": "transport", "title": "出发", "subtitle": "滴滴快车 · 约15分钟", "cost": 18, "status": "ready" },
-          { "id": "n2", "time": "14:15", "duration_min": 120, "type": "activity", "title": "嘟嘟城儿童职业体验馆", "subtitle": "适合3-8岁 · 评分4.8 · 人均120", "cost": 240, "status": "ready" },
-          { "id": "n3", "time": "16:15", "duration_min": 5, "type": "transport", "title": "步行前往餐厅", "subtitle": "约5分钟", "cost": 0, "status": "ready" },
-          { "id": "n4", "time": "16:20", "duration_min": 70, "type": "dining", "title": "素匠泰式健康料理", "subtitle": "低卡轻食 · 4.7分 · 人均65 · 已预约", "cost": 195, "status": "reserved" },
-          { "id": "n5", "time": "17:30", "duration_min": 30, "type": "activity", "title": "西湖音乐喷泉", "subtitle": "免费 · 日落最美", "cost": 0, "status": "ready" },
-          { "id": "n6", "time": "18:00", "duration_min": 15, "type": "transport", "title": "返程", "subtitle": "滴滴快车", "cost": 22, "status": "ready" }
+          {
+            "id": "n1",
+            "time": "14:00",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "出发",
+            "subtitle": "滴滴快车 · 约15分钟",
+            "cost": 18,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "14:15",
+            "duration_min": 120,
+            "type": "activity",
+            "title": "嘟嘟城儿童职业体验馆",
+            "subtitle": "适合3-8岁 · 4.6分 · 角色扮演",
+            "cost": 196,
+            "venue_id": "hz_act_001",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "16:15",
+            "duration_min": 10,
+            "type": "transport",
+            "title": "步行前往",
+            "subtitle": "步行约10分钟",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "16:25",
+            "duration_min": 60,
+            "type": "dining",
+            "title": "gaga鲜语(来福士店)",
+            "subtitle": "轻食沙拉 · 4.5分 · 人均62 · 有低卡",
+            "cost": 120,
+            "venue_id": "hz_rest_013",
+            "status": "reserved"
+          },
+          {
+            "id": "n5",
+            "time": "17:25",
+            "duration_min": 20,
+            "type": "activity",
+            "title": "来福士天台花园散步",
+            "subtitle": "免费 · 看日落",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n6",
+            "time": "17:45",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "返程",
+            "subtitle": "滴滴快车 · 约15分钟",
+            "cost": 22,
+            "venue_id": null,
+            "status": "ready"
+          }
         ]
       },
       {
         "id": "plan_b",
-        "name": "博物馆 · 寓教于乐",
-        "style": "文化型",
-        "total_cost": 265,
+        "name": "自然探索 · 寓教于乐",
+        "style": "教育型",
+        "total_cost": 298,
         "total_duration_hours": 4.0,
-        "scores": { "cost": 9, "fun": 7, "convenience": 8, "fit": 9, "uniqueness": 8 },
+        "scores": {"cost": 9, "fun": 7, "convenience": 7, "fit": 8, "uniqueness": 8},
         "nodes": [
-          { "id": "n1", "time": "14:00", "duration_min": 20, "type": "transport", "title": "出发", "subtitle": "地铁1号线 · 约20分钟", "cost": 6, "status": "ready" },
-          { "id": "n2", "time": "14:20", "duration_min": 100, "type": "activity", "title": "浙江自然博物馆", "subtitle": "免费 · 恐龙厅孩子最爱 · 评分4.9", "cost": 0, "status": "ready" },
-          { "id": "n3", "time": "16:00", "duration_min": 10, "type": "transport", "title": "步行前往餐厅", "subtitle": "约10分钟", "cost": 0, "status": "ready" },
-          { "id": "n4", "time": "16:10", "duration_min": 75, "type": "dining", "title": "绿茶餐厅(龙井路店)", "subtitle": "杭帮菜 · 4.6分 · 人均78", "cost": 234, "status": "reserved" },
-          { "id": "n5", "time": "17:25", "duration_min": 35, "type": "activity", "title": "太子湾公园散步", "subtitle": "免费 · 花海拍照", "cost": 0, "status": "ready" },
-          { "id": "n6", "time": "18:00", "duration_min": 20, "type": "transport", "title": "返程", "subtitle": "打车回家", "cost": 25, "status": "ready" }
+          {
+            "id": "n1",
+            "time": "14:00",
+            "duration_min": 20,
+            "type": "transport",
+            "title": "出发",
+            "subtitle": "滴滴快车 · 约20分钟",
+            "cost": 25,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "14:20",
+            "duration_min": 100,
+            "type": "activity",
+            "title": "浙江自然博物院(杭州馆)",
+            "subtitle": "恐龙化石 · 4.7分 · 免费",
+            "cost": 0,
+            "venue_id": "hz_act_009",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "16:00",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "打车前往",
+            "subtitle": "约15分钟",
+            "cost": 18,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "16:15",
+            "duration_min": 70,
+            "type": "dining",
+            "title": "素匠泰式健康料理(西溪店)",
+            "subtitle": "泰式轻食 · 4.4分 · 人均65 · 低卡",
+            "cost": 195,
+            "venue_id": "hz_rest_012",
+            "status": "reserved"
+          },
+          {
+            "id": "n5",
+            "time": "17:25",
+            "duration_min": 20,
+            "type": "activity",
+            "title": "西溪湿地东门散步",
+            "subtitle": "免费区域 · 看鸟",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n6",
+            "time": "17:45",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "返程",
+            "subtitle": "滴滴快车",
+            "cost": 20,
+            "venue_id": null,
+            "status": "ready"
+          }
         ]
       },
       {
         "id": "plan_c",
-        "name": "商场遛娃 · 雨天兜底",
+        "name": "商场一站式 · 吃玩不愁",
         "style": "舒适型",
-        "total_cost": 420,
+        "total_cost": 428,
         "total_duration_hours": 4.0,
-        "scores": { "cost": 7, "fun": 8, "convenience": 10, "fit": 9, "uniqueness": 5 },
+        "scores": {"cost": 7, "fun": 8, "convenience": 10, "fit": 8, "uniqueness": 5},
         "nodes": [
-          { "id": "n1", "time": "14:00", "duration_min": 15, "type": "transport", "title": "出发", "subtitle": "滴滴快车 · 约15分钟", "cost": 20, "status": "ready" },
-          { "id": "n2", "time": "14:15", "duration_min": 90, "type": "activity", "title": "万象城meland亲子乐园", "subtitle": "室内游乐 · 评分4.7 · 含沙池滑梯", "cost": 198, "status": "ready" },
-          { "id": "n3", "time": "15:45", "duration_min": 5, "type": "transport", "title": "商场内步行", "subtitle": "乘电梯到4楼", "cost": 0, "status": "ready" },
-          { "id": "n4", "time": "15:50", "duration_min": 70, "type": "dining", "title": "外婆家(万象城店)", "subtitle": "杭帮菜 · 4.5分 · 人均58 · 有儿童套餐", "cost": 174, "status": "reserved" },
-          { "id": "n5", "time": "17:00", "duration_min": 40, "type": "activity", "title": "西西弗书店亲子阅读区", "subtitle": "免费 · 绘本丰富", "cost": 0, "status": "ready" },
-          { "id": "n6", "time": "17:40", "duration_min": 20, "type": "transport", "title": "返程", "subtitle": "滴滴快车", "cost": 28, "status": "ready" }
+          {
+            "id": "n1",
+            "time": "14:00",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "出发",
+            "subtitle": "滴滴快车 · 约15分钟",
+            "cost": 18,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "14:15",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "乐堡儿童王国(城西银泰店)",
+            "subtitle": "室内乐园 · 4.5分 · 适合3-8岁",
+            "cost": 158,
+            "venue_id": "hz_act_004",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "15:45",
+            "duration_min": 5,
+            "type": "transport",
+            "title": "同楼层步行",
+            "subtitle": "同商场内 · 步行2分钟",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "15:50",
+            "duration_min": 70,
+            "type": "dining",
+            "title": "鲨鱼菲特轻食(城西银泰店)",
+            "subtitle": "轻食 · 4.3分 · 人均48 · 低卡",
+            "cost": 144,
+            "venue_id": "hz_rest_014",
+            "status": "reserved"
+          },
+          {
+            "id": "n5",
+            "time": "17:00",
+            "duration_min": 45,
+            "type": "activity",
+            "title": "城西银泰儿童区逛逛",
+            "subtitle": "乐高店+绘本馆",
+            "cost": 68,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n6",
+            "time": "17:45",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "返程",
+            "subtitle": "滴滴快车 · 约15分钟",
+            "cost": 20,
+            "venue_id": null,
+            "status": "ready"
+          }
         ]
       }
     ],
-    "share_message": "搞定了！下午2点出发 🎉\n14:15 嘟嘟城儿童乐园（120/人）\n16:20 素匠泰式轻食（已预约🍽️）\n17:30 西湖音乐喷泉（免费）\n18:00 打车回家\n总花费约475元，你看看怎么样？",
-    "execution_summary": { "taxi_booked": true, "tickets_bought": true, "restaurant_reserved": true, "total_cost": 475 }
+    "share_message": "搞定了！今天下午的亲子计划：\n⏰ 14:00 出发\n🎠 嘟嘟城儿童体验馆玩2小时\n🥗 gaga鲜语吃轻食（有低卡选项哦~）\n🌅 来福士天台看日落\n💰 总花费约356元\n\n车已叫好，餐厅已预订，出发吧！",
+    "execution_summary": {
+      "taxi_booked": true,
+      "tickets_bought": true,
+      "restaurant_reserved": true,
+      "total_cost": 356
+    }
   },
-
   {
     "id": "case_hz_friends_sunny",
-    "title": "杭州 · 好友Citywalk一日游",
-    "subtitle": "4人小队 · 良渚探古 + 小河漫步 + 火锅收尾",
+    "title": "杭州 · 周末好友畅玩日",
+    "subtitle": "4人小队的6小时精彩周末",
     "city": "杭州",
     "scene_type": "friends",
     "weather": "sunny",
     "cover_emoji": "friends",
-    "input": "周末4个人出去玩，2男2女，人均预算200左右，想去良渚那边逛逛，再citywalk，晚上吃火锅",
+    "input": "周六下午，4个人，2男2女，想玩6小时，预算人均200",
     "intent": {
       "scene_type": "friends",
       "city": "杭州",
       "group_size": 4,
-      "duration_hours": 8,
-      "budget_per_person": 200,
-      "preferences": ["良渚", "citywalk", "火锅"],
-      "start_time": "10:00"
-    },
-    "agent_thinking": [
-      {
-        "agent": "orchestrator",
-        "status": "complete",
-        "duration_ms": 720,
-        "thoughts": [
-          "解析到朋友聚会场景：4人（2男2女）",
-          "人均预算200，总预算约800元",
-          "关键词：良渚、citywalk、火锅",
-          "全天行程约8小时，需合理分配上午/下午/晚上"
-        ]
-      },
-      {
-        "agent": "context",
-        "status": "complete",
-        "duration_ms": 280,
-        "thoughts": [
-          "查询杭州天气：晴，26°C，微风，非常适合户外citywalk",
-          "当前周六，良渚古城遗址公园预计客流中等",
-          "良渚到市区约30km，需预留交通时间"
-        ]
-      },
-      {
-        "agent": "dining",
-        "status": "complete",
-        "duration_ms": 1350,
-        "thoughts": [
-          "搜索条件：火锅 + 评分4.5+ + 4人桌",
-          "高德POI返回35家，按评分和距离筛选",
-          "优选：楠火锅(4.8分)、巴奴毛肚(4.7分)、海底捞(4.6分)",
-          "午餐轻食：良渚附近的面馆/简餐"
-        ]
-      },
-      {
-        "agent": "activity",
-        "status": "complete",
-        "duration_ms": 1100,
-        "thoughts": [
-          "良渚古城遗址公园门票60元/人",
-          "良渚博物院免费但需预约",
-          "citywalk路线规划：小河直街(1.5km) / 大兜路(2km) / 天目里(1km)",
-          "综合距离和体验推荐3条不同路线"
-        ]
-      },
-      {
-        "agent": "synthesizer",
-        "status": "complete",
-        "duration_ms": 2400,
-        "thoughts": [
-          "方案A(经典线)：良渚古城 → 小河直街citywalk → 楠火锅",
-          "方案B(文艺线)：良渚博物院 → 天目里citywalk → 巴奴毛肚",
-          "方案C(轻松线)：良渚博物院 → 大兜路citywalk → 海底捞",
-          "3个方案均控制在人均200以内"
-        ]
-      },
-      {
-        "agent": "critic",
-        "status": "complete",
-        "duration_ms": 180,
-        "thoughts": [
-          "校验3个方案：全部通过",
-          "方案A人均198最贴预算，方案B文艺指数最高，方案C最轻松"
-        ]
-      }
-    ],
-    "plans": [
-      {
-        "id": "plan_a",
-        "name": "良渚探古 · 小河漫步",
-        "style": "经典型",
-        "total_cost": 792,
-        "total_duration_hours": 8.0,
-        "scores": { "cost": 8, "fun": 9, "convenience": 7, "fit": 10, "uniqueness": 9 },
-        "nodes": [
-          { "id": "n1", "time": "10:00", "duration_min": 45, "type": "transport", "title": "出发前往良渚", "subtitle": "滴滴拼车 · 约45分钟", "cost": 72, "status": "ready" },
-          { "id": "n2", "time": "10:45", "duration_min": 150, "type": "activity", "title": "良渚古城遗址公园", "subtitle": "世界遗产 · 评分4.9 · 门票60/人", "cost": 240, "status": "ready" },
-          { "id": "n3", "time": "13:15", "duration_min": 10, "type": "transport", "title": "步行至餐厅", "subtitle": "公园南门出 · 约10分钟", "cost": 0, "status": "ready" },
-          { "id": "n4", "time": "13:25", "duration_min": 50, "type": "dining", "title": "良渚食堂·面馆", "subtitle": "手工面 · 4.5分 · 人均25", "cost": 100, "status": "ready" },
-          { "id": "n5", "time": "14:15", "duration_min": 30, "type": "transport", "title": "打车回市区", "subtitle": "滴滴快车 · 约30分钟", "cost": 56, "status": "ready" },
-          { "id": "n6", "time": "14:45", "duration_min": 90, "type": "activity", "title": "小河直街Citywalk", "subtitle": "1.5km · 文艺小店 · 咖啡拍照", "cost": 60, "status": "ready" },
-          { "id": "n7", "time": "16:15", "duration_min": 15, "type": "transport", "title": "步行前往火锅店", "subtitle": "约15分钟", "cost": 0, "status": "ready" },
-          { "id": "n8", "time": "16:30", "duration_min": 30, "type": "activity", "title": "信义坊逛逛等位", "subtitle": "拍照打卡 · 逛文创店", "cost": 0, "status": "ready" },
-          { "id": "n9", "time": "17:00", "duration_min": 100, "type": "dining", "title": "楠火锅(信义坊店)", "subtitle": "川味火锅 · 4.8分 · 人均66 · 已订位", "cost": 264, "status": "reserved" },
-          { "id": "n10", "time": "18:40", "duration_min": 0, "type": "transport", "title": "各自返程", "subtitle": "地铁/打车", "cost": 0, "status": "ready" }
-        ]
-      },
-      {
-        "id": "plan_b",
-        "name": "博物院 · 天目里文艺线",
-        "style": "文艺型",
-        "total_cost": 600,
-        "total_duration_hours": 8.0,
-        "scores": { "cost": 9, "fun": 8, "convenience": 8, "fit": 9, "uniqueness": 10 },
-        "nodes": [
-          { "id": "n1", "time": "10:00", "duration_min": 40, "type": "transport", "title": "出发前往良渚", "subtitle": "地铁+公交 · 约40分钟", "cost": 24, "status": "ready" },
-          { "id": "n2", "time": "10:40", "duration_min": 120, "type": "activity", "title": "良渚博物院", "subtitle": "免费 · 评分4.9 · 需预约", "cost": 0, "status": "reserved" },
-          { "id": "n3", "time": "12:40", "duration_min": 50, "type": "dining", "title": "良渚文化村·村民食堂", "subtitle": "简餐 · 4.4分 · 人均30", "cost": 120, "status": "ready" },
-          { "id": "n4", "time": "13:30", "duration_min": 35, "type": "transport", "title": "打车到天目里", "subtitle": "滴滴快车 · 约35分钟", "cost": 48, "status": "ready" },
-          { "id": "n5", "time": "14:05", "duration_min": 120, "type": "activity", "title": "天目里Citywalk", "subtitle": "2km · 蔦屋书店+茑屋+网红打卡", "cost": 80, "status": "ready" },
-          { "id": "n6", "time": "16:05", "duration_min": 15, "type": "transport", "title": "步行前往火锅店", "subtitle": "约15分钟", "cost": 0, "status": "ready" },
-          { "id": "n7", "time": "16:20", "duration_min": 40, "type": "activity", "title": "武林路逛街", "subtitle": "等火锅排号 · 逛周边小店", "cost": 0, "status": "ready" },
-          { "id": "n8", "time": "17:00", "duration_min": 100, "type": "dining", "title": "巴奴毛肚火锅(武林店)", "subtitle": "毛肚火锅 · 4.7分 · 人均82 · 已订位", "cost": 328, "status": "reserved" },
-          { "id": "n9", "time": "18:40", "duration_min": 0, "type": "transport", "title": "各自返程", "subtitle": "地铁武林广场站", "cost": 0, "status": "ready" }
-        ]
-      },
-      {
-        "id": "plan_c",
-        "name": "轻松半日 · 海底捞收尾",
-        "style": "轻松型",
-        "total_cost": 580,
-        "total_duration_hours": 7.5,
-        "scores": { "cost": 8, "fun": 7, "convenience": 10, "fit": 8, "uniqueness": 6 },
-        "nodes": [
-          { "id": "n1", "time": "10:00", "duration_min": 40, "type": "transport", "title": "出发前往良渚", "subtitle": "地铁16号线 · 约40分钟", "cost": 24, "status": "ready" },
-          { "id": "n2", "time": "10:40", "duration_min": 100, "type": "activity", "title": "良渚博物院", "subtitle": "免费 · 评分4.9 · 已预约", "cost": 0, "status": "reserved" },
-          { "id": "n3", "time": "12:20", "duration_min": 45, "type": "dining", "title": "良渚·大屋顶美术馆咖啡", "subtitle": "简餐+咖啡 · 4.6分 · 人均35", "cost": 140, "status": "ready" },
-          { "id": "n4", "time": "13:05", "duration_min": 30, "type": "transport", "title": "地铁回市区", "subtitle": "地铁16号线 · 约30分钟", "cost": 24, "status": "ready" },
-          { "id": "n5", "time": "13:35", "duration_min": 120, "type": "activity", "title": "大兜路历史街区Citywalk", "subtitle": "2km · 运河边漫步 · 香积寺", "cost": 0, "status": "ready" },
-          { "id": "n6", "time": "15:35", "duration_min": 10, "type": "transport", "title": "步行前往商场", "subtitle": "约10分钟", "cost": 0, "status": "ready" },
-          { "id": "n7", "time": "15:45", "duration_min": 75, "type": "activity", "title": "远洋乐堤港逛逛", "subtitle": "奶茶+逛街 · 等排号", "cost": 40, "status": "ready" },
-          { "id": "n8", "time": "17:00", "duration_min": 90, "type": "dining", "title": "海底捞(乐堤港店)", "subtitle": "川味火锅 · 4.6分 · 人均88 · 已订位", "cost": 352, "status": "reserved" },
-          { "id": "n9", "time": "18:30", "duration_min": 0, "type": "transport", "title": "各自返程", "subtitle": "公交/地铁", "cost": 0, "status": "ready" }
-        ]
-      }
-    ],
-    "share_message": "周末出游安排好了！🎒\n10:45 良渚古城遗址公园（门票60/人）\n13:25 良渚食堂简单吃\n14:45 小河直街Citywalk ☕\n17:00 楠火锅（已订位🔥）\n人均约198元，走起！",
-    "execution_summary": { "taxi_booked": true, "tickets_bought": true, "restaurant_reserved": true, "total_cost": 792 }
-  },
-
-  {
-    "id": "case_hz_family_rainy",
-    "title": "杭州 · 雨天亲子室内游",
-    "subtitle": "下雨也不怕 · 海洋馆 + 商场一站式遛娃",
-    "city": "杭州",
-    "scene_type": "family",
-    "weather": "rainy",
-    "cover_emoji": "umbrella",
-    "input": "今天下雨，带4岁的女儿出去玩半天，不想淋雨，有什么室内好去处",
-    "intent": {
-      "scene_type": "family",
-      "city": "杭州",
-      "group_size": 3,
-      "duration_hours": 5,
-      "child_age": 4,
-      "weather_constraint": "室内",
-      "start_time": "10:00"
-    },
-    "agent_thinking": [
-      {
-        "agent": "orchestrator",
-        "status": "complete",
-        "duration_ms": 680,
-        "thoughts": [
-          "解析到家庭场景：3人（夫妻+4岁女儿）",
-          "天气：下雨，必须全室内行程",
-          "时间窗口：半天约5小时",
-          "关键：4岁女孩喜欢的室内场所"
-        ]
-      },
-      {
-        "agent": "context",
-        "status": "complete",
-        "duration_ms": 250,
-        "thoughts": [
-          "查询杭州天气：中雨，22°C，全天有雨",
-          "周末，室内场馆预计客流较大",
-          "建议避开高峰，早到为佳"
-        ]
-      },
-      {
-        "agent": "dining",
-        "status": "complete",
-        "duration_ms": 950,
-        "thoughts": [
-          "搜索条件：儿童友好 + 室内商场内 + 评分4.5+",
-          "优先选择商场内餐厅，避免雨中移动",
-          "优选：新白鹿(4.6分)、弄堂里(4.5分)"
-        ]
-      },
-      {
-        "agent": "activity",
-        "status": "complete",
-        "duration_ms": 1050,
-        "thoughts": [
-          "搜索条件：室内 + 适合4岁 + 亲子",
-          "杭州长乔极地海洋公园(4.7) — 大型室内海洋馆",
-          "浙江科技馆(4.6) — 儿童科学乐园",
-          "各大商场亲子乐园备选"
-        ]
-      },
-      {
-        "agent": "synthesizer",
-        "status": "complete",
-        "duration_ms": 1800,
-        "thoughts": [
-          "方案A(海洋馆线)：海洋公园+湘湖商圈午餐",
-          "方案B(科技馆线)：科技馆+西湖文化广场午餐",
-          "全室内行程，无需淋雨"
-        ]
-      },
-      {
-        "agent": "critic",
-        "status": "complete",
-        "duration_ms": 120,
-        "thoughts": [
-          "校验2个方案：全部通过",
-          "两个方案全程室内或有遮挡，雨天完全可行"
-        ]
-      }
-    ],
-    "plans": [
-      {
-        "id": "plan_a",
-        "name": "海洋世界 · 梦幻半日",
-        "style": "沉浸型",
-        "total_cost": 595,
-        "total_duration_hours": 5.0,
-        "scores": { "cost": 6, "fun": 10, "convenience": 7, "fit": 10, "uniqueness": 9 },
-        "nodes": [
-          { "id": "n1", "time": "10:00", "duration_min": 30, "type": "transport", "title": "出发", "subtitle": "滴滴快车 · 约30分钟", "cost": 38, "status": "ready" },
-          { "id": "n2", "time": "10:30", "duration_min": 150, "type": "activity", "title": "杭州长乔极地海洋公园", "subtitle": "海豚表演11:30 · 评分4.7 · 门票150/大人 80/儿童", "cost": 380, "status": "ready" },
-          { "id": "n3", "time": "13:00", "duration_min": 5, "type": "transport", "title": "步行至商场", "subtitle": "连廊直达湘湖壹号 · 不淋雨", "cost": 0, "status": "ready" },
-          { "id": "n4", "time": "13:05", "duration_min": 60, "type": "dining", "title": "新白鹿餐厅(湘湖店)", "subtitle": "杭帮菜 · 4.6分 · 人均45 · 有儿童椅", "cost": 135, "status": "reserved" },
-          { "id": "n5", "time": "14:05", "duration_min": 55, "type": "activity", "title": "湘湖壹号儿童区", "subtitle": "免费 · 室内滑梯+积木区", "cost": 0, "status": "ready" },
-          { "id": "n6", "time": "15:00", "duration_min": 30, "type": "transport", "title": "返程", "subtitle": "滴滴快车", "cost": 42, "status": "ready" }
-        ]
-      },
-      {
-        "id": "plan_b",
-        "name": "科技探索 · 知识乐园",
-        "style": "教育型",
-        "total_cost": 298,
-        "total_duration_hours": 5.0,
-        "scores": { "cost": 9, "fun": 8, "convenience": 9, "fit": 9, "uniqueness": 7 },
-        "nodes": [
-          { "id": "n1", "time": "10:00", "duration_min": 20, "type": "transport", "title": "出发", "subtitle": "地铁1号线西湖文化广场站", "cost": 8, "status": "ready" },
-          { "id": "n2", "time": "10:20", "duration_min": 130, "type": "activity", "title": "浙江省科技馆·儿童科学乐园", "subtitle": "免费 · 评分4.6 · 水科学+光影区最受欢迎", "cost": 0, "status": "reserved" },
-          { "id": "n3", "time": "12:30", "duration_min": 5, "type": "transport", "title": "步行", "subtitle": "文化广场地下商场 · 约5分钟", "cost": 0, "status": "ready" },
-          { "id": "n4", "time": "12:35", "duration_min": 60, "type": "dining", "title": "弄堂里(西湖文化广场店)", "subtitle": "杭帮菜 · 4.5分 · 人均55", "cost": 165, "status": "reserved" },
-          { "id": "n5", "time": "13:35", "duration_min": 60, "type": "activity", "title": "西湖文化广场新华书店", "subtitle": "儿童绘本区 · 免费阅读", "cost": 0, "status": "ready" },
-          { "id": "n6", "time": "14:35", "duration_min": 25, "type": "activity", "title": "银泰百货亲子手工DIY", "subtitle": "陶艺体验 · 人均40", "cost": 120, "status": "ready" },
-          { "id": "n7", "time": "15:00", "duration_min": 20, "type": "transport", "title": "返程", "subtitle": "地铁回家", "cost": 5, "status": "ready" }
-        ]
-      }
-    ],
-    "share_message": "下雨天也安排得明明白白 🌧️\n10:30 极地海洋公园（海豚表演11:30🐬）\n13:05 新白鹿餐厅（已预约）\n14:05 湘湖壹号儿童区玩会儿\n15:00 打车回家\n总花费约595元，全程不淋雨！",
-    "execution_summary": { "taxi_booked": true, "tickets_bought": true, "restaurant_reserved": true, "total_cost": 595 }
-  },
-
-  {
-    "id": "case_bj_family_sunny",
-    "title": "北京 · 科技馆亲子一日游",
-    "subtitle": "6岁小科学家的探索之旅",
-    "city": "北京",
-    "scene_type": "family",
-    "weather": "sunny",
-    "cover_emoji": "rocket",
-    "input": "周末想带6岁儿子去科技馆看看，他最近迷上了太空和恐龙，顺便解决午饭，别太累",
-    "intent": {
-      "scene_type": "family",
-      "city": "北京",
-      "group_size": 3,
+      "group_composition": ["adult_male", "adult_male", "adult_female", "adult_female"],
       "duration_hours": 6,
-      "child_age": 6,
-      "preferences": ["科技馆", "太空", "恐龙"],
-      "start_time": "09:00"
+      "time_start": "13:00",
+      "budget_per_person": 200,
+      "budget_total": 800,
+      "constraints": [],
+      "weather": "sunny",
+      "preferences": ["社交", "拍照", "美食"]
     },
     "agent_thinking": [
       {
@@ -424,433 +355,1697 @@
         "status": "complete",
         "duration_ms": 780,
         "thoughts": [
-          "解析到家庭场景：3人（夫妻+6岁儿子）",
-          "孩子兴趣：太空和恐龙，优先科技类场馆",
-          "时间窗口：约6小时，别太累 → 节奏要松弛",
-          "分发任务给 Context / Dining / Activity Agent"
+          "解析到朋友场景：4人（2男2女），社交为主",
+          "预算：人均200，总800，6小时",
+          "周六下午，时间充裕，可以安排2-3个活动",
+          "分发任务给 context_agent、dining_agent、activity_agent"
         ]
       },
       {
-        "agent": "context",
+        "agent": "context_agent",
         "status": "complete",
-        "duration_ms": 300,
+        "duration_ms": 550,
         "thoughts": [
-          "查询北京天气：晴，30°C，适合户外但建议防晒",
-          "周六，中国科技馆需提前预约，预计客流大",
-          "奥林匹克公园片区交通便利"
+          "周六杭州晴天，25°C，适合户外活动",
+          "周末热门景点可能人多，避开西湖核心区",
+          "推荐文艺+美食路线，拍照需求较高",
+          "6小时跨下午到傍晚，需考虑晚餐"
         ]
       },
       {
-        "agent": "dining",
+        "agent": "dining_agent",
         "status": "complete",
-        "duration_ms": 1100,
+        "duration_ms": 1050,
         "thoughts": [
-          "搜索条件：奥体/亚运村片区 + 儿童友好 + 评分4.5+",
-          "高德POI返回28家，筛选后Top5",
-          "优选：胡大饭馆(4.7)、呷哺呷哺(4.5)、必胜客(儿童餐)"
+          "4人聚餐偏好：氛围好、适合拍照、人均200以内",
+          "选项：花舍咖餐厅（西餐+花艺）、文和友（网红打卡）、凑凑火锅（社交氛围）",
+          "下午茶：Manner Coffee、% Arabica（文艺拍照）",
+          "考虑出片率和社交属性"
         ]
       },
       {
-        "agent": "activity",
+        "agent": "activity_agent",
         "status": "complete",
-        "duration_ms": 1250,
+        "duration_ms": 980,
         "thoughts": [
-          "中国科技馆：太空探索展厅 + 恐龙化石展区 — 完美匹配",
-          "北京天文馆：天象厅 — 太空主题",
-          "北京自然博物馆：恐龙厅 — 恐龙主题",
-          "三个方向各有侧重"
+          "年轻人朋友群体 → 展览/CityWalk/运动",
+          "拍照需求：天目里、中国美院美术馆、南宋御街",
+          "运动类：西湖骑行、攀岩",
+          "按社交性和拍照出片率排序"
         ]
       },
       {
         "agent": "synthesizer",
         "status": "complete",
-        "duration_ms": 2200,
+        "duration_ms": 850,
         "thoughts": [
-          "方案A(科技馆线)：中国科技馆全天深度游",
-          "方案B(天文线)：北京天文馆+自然博物馆 太空+恐龙双满足",
-          "方案C(自然线)：自然博物馆+天坛公园 恐龙+户外",
-          "方案A最省力，方案B最丰富，方案C最均衡"
+          "方案A：展览+CityWalk → 文艺型，拍照出片",
+          "方案B：运动+美食 → 活力型，释放压力",
+          "方案C：文艺休闲 → 慢节奏，适合聊天",
+          "三方案均控制人均200以内"
         ]
       },
       {
         "agent": "critic",
         "status": "complete",
-        "duration_ms": 160,
+        "duration_ms": 450,
         "thoughts": [
-          "校验3个方案：全部通过",
-          "方案A适合慢节奏，方案B信息量最大，方案C体力需求中等"
+          "方案A适配度最高：年轻人+拍照+社交完美匹配",
+          "方案B适合活力型朋友，但女生可能不爱运动",
+          "方案C节奏偏慢，6小时可能略无聊",
+          "推荐A为首选"
         ]
       }
     ],
     "plans": [
       {
         "id": "plan_a",
-        "name": "科技馆深度游 · 太空恐龙全满足",
-        "style": "轻松型",
-        "total_cost": 386,
+        "name": "文艺探索 · 展览+CityWalk",
+        "style": "文艺型",
+        "total_cost": 712,
         "total_duration_hours": 6.0,
-        "scores": { "cost": 8, "fun": 10, "convenience": 9, "fit": 10, "uniqueness": 8 },
+        "scores": {"cost": 8, "fun": 8, "convenience": 7, "fit": 9, "uniqueness": 9},
         "nodes": [
-          { "id": "n1", "time": "09:00", "duration_min": 30, "type": "transport", "title": "出发", "subtitle": "地铁8号线奥林匹克公园站", "cost": 10, "status": "ready" },
-          { "id": "n2", "time": "09:30", "duration_min": 180, "type": "activity", "title": "中国科技馆", "subtitle": "主票30/人 · 太空展厅+恐龙展+儿童科学乐园", "cost": 90, "status": "reserved" },
-          { "id": "n3", "time": "12:30", "duration_min": 10, "type": "transport", "title": "步行至餐厅", "subtitle": "奥体商圈 · 约10分钟", "cost": 0, "status": "ready" },
-          { "id": "n4", "time": "12:40", "duration_min": 60, "type": "dining", "title": "胡大饭馆(奥体店)", "subtitle": "小龙虾 · 4.7分 · 人均75 · 有儿童餐", "cost": 225, "status": "reserved" },
-          { "id": "n5", "time": "13:40", "duration_min": 50, "type": "activity", "title": "奥林匹克公园散步", "subtitle": "看鸟巢水立方 · 免费 · 拍照打卡", "cost": 0, "status": "ready" },
-          { "id": "n6", "time": "14:30", "duration_min": 30, "type": "activity", "title": "科技馆纪念品商店", "subtitle": "太空模型+恐龙化石玩具", "cost": 50, "status": "ready" },
-          { "id": "n7", "time": "15:00", "duration_min": 30, "type": "transport", "title": "返程", "subtitle": "地铁回家", "cost": 11, "status": "ready" }
+          {
+            "id": "n1",
+            "time": "13:00",
+            "duration_min": 20,
+            "type": "transport",
+            "title": "集合出发",
+            "subtitle": "地铁1号线 · 凤起路站",
+            "cost": 16,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "13:20",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "浙江省博物馆(孤山馆区)",
+            "subtitle": "免费 · 4.7分 · 越王勾践剑必看",
+            "cost": 0,
+            "venue_id": "hz_act_007",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "14:50",
+            "duration_min": 40,
+            "type": "activity",
+            "title": "% Arabica(龙井路店) 下午茶",
+            "subtitle": "网红咖啡 · 4.6分 · 人均45",
+            "cost": 180,
+            "venue_id": "hz_rest_050",
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "15:30",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "步行前往",
+            "subtitle": "沿西湖步行约15分钟",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n5",
+            "time": "15:45",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "南山路CityWalk",
+            "subtitle": "中国美院 · 太子湾 · 拍照",
+            "cost": 0,
+            "venue_id": "hz_act_018",
+            "status": "ready"
+          },
+          {
+            "id": "n6",
+            "time": "17:15",
+            "duration_min": 10,
+            "type": "transport",
+            "title": "步行前往",
+            "subtitle": "步行约10分钟",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n7",
+            "time": "17:25",
+            "duration_min": 90,
+            "type": "dining",
+            "title": "花舍咖餐厅(南山路店)",
+            "subtitle": "花艺西餐 · 4.6分 · 人均108",
+            "cost": 432,
+            "venue_id": "hz_rest_030",
+            "status": "reserved"
+          },
+          {
+            "id": "n8",
+            "time": "18:55",
+            "duration_min": 5,
+            "type": "transport",
+            "title": "散步回地铁站",
+            "subtitle": "步行或骑共享单车",
+            "cost": 4,
+            "venue_id": null,
+            "status": "ready"
+          }
         ]
       },
       {
         "id": "plan_b",
-        "name": "天文馆 + 自然馆 · 双馆联游",
-        "style": "知识型",
-        "total_cost": 343,
-        "total_duration_hours": 6.5,
-        "scores": { "cost": 7, "fun": 9, "convenience": 7, "fit": 10, "uniqueness": 10 },
+        "name": "活力释放 · 运动+美食",
+        "style": "活力型",
+        "total_cost": 756,
+        "total_duration_hours": 6.0,
+        "scores": {"cost": 7, "fun": 9, "convenience": 7, "fit": 7, "uniqueness": 8},
         "nodes": [
-          { "id": "n1", "time": "09:00", "duration_min": 25, "type": "transport", "title": "出发", "subtitle": "地铁4号线动物园站", "cost": 8, "status": "ready" },
-          { "id": "n2", "time": "09:25", "duration_min": 120, "type": "activity", "title": "北京天文馆", "subtitle": "天象厅45/人 · 宇宙剧场 · 太空展", "cost": 135, "status": "reserved" },
-          { "id": "n3", "time": "11:25", "duration_min": 15, "type": "transport", "title": "打车前往自然博物馆", "subtitle": "滴滴快车 · 约15分钟", "cost": 28, "status": "ready" },
-          { "id": "n4", "time": "11:40", "duration_min": 50, "type": "dining", "title": "必胜客(天桥店)", "subtitle": "儿童套餐 · 4.5分 · 人均55", "cost": 165, "status": "ready" },
-          { "id": "n5", "time": "12:30", "duration_min": 120, "type": "activity", "title": "北京自然博物馆", "subtitle": "免费 · 恐龙厅 · 古哺乳动物厅", "cost": 0, "status": "reserved" },
-          { "id": "n6", "time": "14:30", "duration_min": 30, "type": "activity", "title": "天桥艺术中心广场", "subtitle": "免费 · 户外休息拍照", "cost": 0, "status": "ready" },
-          { "id": "n7", "time": "15:00", "duration_min": 30, "type": "transport", "title": "返程", "subtitle": "地铁14号线", "cost": 7, "status": "ready" }
+          {
+            "id": "n1",
+            "time": "13:00",
+            "duration_min": 25,
+            "type": "transport",
+            "title": "集合出发",
+            "subtitle": "打车去西溪 · 约25分钟",
+            "cost": 48,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "13:25",
+            "duration_min": 150,
+            "type": "activity",
+            "title": "西溪湿地骑行+皮划艇",
+            "subtitle": "户外运动 · 4.7分",
+            "cost": 280,
+            "venue_id": "hz_act_016",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "15:55",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "步行前往",
+            "subtitle": "步行到天目里",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "16:10",
+            "duration_min": 50,
+            "type": "activity",
+            "title": "天目里逛逛",
+            "subtitle": "蔦屋书店 · 拍照 · 免费",
+            "cost": 0,
+            "venue_id": "hz_act_019",
+            "status": "ready"
+          },
+          {
+            "id": "n5",
+            "time": "17:00",
+            "duration_min": 100,
+            "type": "dining",
+            "title": "凑凑火锅·茶憩(嘉里中心店)",
+            "subtitle": "火锅+奶茶 · 4.5分 · 人均107",
+            "cost": 428,
+            "venue_id": "hz_rest_019",
+            "status": "reserved"
+          },
+          {
+            "id": "n6",
+            "time": "18:40",
+            "duration_min": 20,
+            "type": "transport",
+            "title": "返程",
+            "subtitle": "地铁/打车",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          }
         ]
       },
       {
         "id": "plan_c",
-        "name": "自然博物馆 + 天坛 · 动静结合",
-        "style": "均衡型",
-        "total_cost": 370,
+        "name": "慢生活 · 文艺休闲",
+        "style": "休闲型",
+        "total_cost": 680,
         "total_duration_hours": 6.0,
-        "scores": { "cost": 9, "fun": 8, "convenience": 8, "fit": 9, "uniqueness": 7 },
+        "scores": {"cost": 8, "fun": 7, "convenience": 8, "fit": 8, "uniqueness": 7},
         "nodes": [
-          { "id": "n1", "time": "09:00", "duration_min": 25, "type": "transport", "title": "出发", "subtitle": "地铁5号线天坛东门站", "cost": 7, "status": "ready" },
-          { "id": "n2", "time": "09:25", "duration_min": 120, "type": "activity", "title": "北京自然博物馆", "subtitle": "免费 · 恐龙厅 · 评分4.8 · 已预约", "cost": 0, "status": "reserved" },
-          { "id": "n3", "time": "11:25", "duration_min": 10, "type": "transport", "title": "步行前往餐厅", "subtitle": "约10分钟", "cost": 0, "status": "ready" },
-          { "id": "n4", "time": "11:35", "duration_min": 60, "type": "dining", "title": "四季民福烤鸭(天坛店)", "subtitle": "北京烤鸭 · 4.7分 · 人均95", "cost": 285, "status": "reserved" },
-          { "id": "n5", "time": "12:35", "duration_min": 90, "type": "activity", "title": "天坛公园", "subtitle": "联票28/人 · 回音壁 · 祈年殿", "cost": 56, "status": "ready" },
-          { "id": "n6", "time": "14:05", "duration_min": 25, "type": "activity", "title": "天坛公园冰棍休息", "subtitle": "北冰洋汽水 · 树荫下歇脚", "cost": 15, "status": "ready" },
-          { "id": "n7", "time": "14:30", "duration_min": 30, "type": "transport", "title": "返程", "subtitle": "地铁回家", "cost": 7, "status": "ready" }
+          {
+            "id": "n1",
+            "time": "13:00",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "集合出发",
+            "subtitle": "地铁到龙翔桥站",
+            "cost": 16,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "13:15",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "南宋御街CityWalk",
+            "subtitle": "历史街区 · 4.5分 · 免费",
+            "cost": 0,
+            "venue_id": "hz_act_020",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "14:45",
+            "duration_min": 50,
+            "type": "dining",
+            "title": "明谦咖啡·光影餐厅",
+            "subtitle": "网红下午茶 · 4.5分 · 人均55",
+            "cost": 220,
+            "venue_id": "hz_rest_040",
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "15:35",
+            "duration_min": 10,
+            "type": "transport",
+            "title": "步行前往",
+            "subtitle": "步行约10分钟",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n5",
+            "time": "15:45",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "中国丝绸博物馆",
+            "subtitle": "免费 · 4.6分 · 汉服体验",
+            "cost": 0,
+            "venue_id": "hz_act_008",
+            "status": "ready"
+          },
+          {
+            "id": "n6",
+            "time": "17:15",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "步行前往",
+            "subtitle": "步行约15分钟到湖滨银泰",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n7",
+            "time": "17:30",
+            "duration_min": 90,
+            "type": "dining",
+            "title": "外婆家(湖滨银泰店)",
+            "subtitle": "杭帮菜 · 4.5分 · 人均68",
+            "cost": 272,
+            "venue_id": "hz_rest_002",
+            "status": "reserved"
+          },
+          {
+            "id": "n8",
+            "time": "19:00",
+            "duration_min": 0,
+            "type": "transport",
+            "title": "湖滨银泰散场",
+            "subtitle": "各自回家",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          }
         ]
       }
     ],
-    "share_message": "小科学家出发！🚀\n09:30 中国科技馆（太空展+恐龙展+儿童乐园）\n12:40 胡大饭馆午餐（已预约）\n13:40 奥林匹克公园看鸟巢\n15:00 地铁回家\n总花费约386元，不累刚刚好！",
-    "execution_summary": { "taxi_booked": false, "tickets_bought": true, "restaurant_reserved": true, "total_cost": 386 }
+    "share_message": "周六下午安排好了！\n🎨 13:20 浙江省博物馆看展\n☕ 14:50 龙井路%Arabica喝咖啡\n🚶 15:45 南山路CityWalk拍照\n🍽️ 17:25 花舍咖餐厅晚餐\n💰 人均约178元\n\n博物馆免费，餐厅已订位，拍照出片率超高！",
+    "execution_summary": {
+      "taxi_booked": false,
+      "tickets_bought": false,
+      "restaurant_reserved": true,
+      "total_cost": 712
+    }
   },
-
+  {
+    "id": "case_hz_family_rainy",
+    "title": "杭州 · 雨天室内亲子日",
+    "subtitle": "下雨也不怕的亲子好去处",
+    "city": "杭州",
+    "scene_type": "family",
+    "weather": "rainy",
+    "cover_emoji": "umbrella",
+    "input": "今天下雨了，带5岁孩子找个室内的地方玩，顺便吃个饭",
+    "intent": {
+      "scene_type": "family",
+      "city": "杭州",
+      "group_size": 3,
+      "group_composition": ["adult_male", "adult_female", "child_5"],
+      "duration_hours": 4,
+      "time_start": "14:00",
+      "budget_total": 600,
+      "constraints": ["child_friendly", "indoor_only"],
+      "weather": "rainy",
+      "preferences": ["亲子", "室内", "互动"]
+    },
+    "agent_thinking": [
+      {
+        "agent": "orchestrator",
+        "status": "complete",
+        "duration_ms": 720,
+        "thoughts": [
+          "解析到家庭场景+雨天，核心约束：必须室内",
+          "5岁小孩 → 需要互动性强的室内活动",
+          "顺便吃饭 → 活动和餐厅最好在同一商圈",
+          "分发任务给各Agent，强调is_indoor=true筛选"
+        ]
+      },
+      {
+        "agent": "context_agent",
+        "status": "complete",
+        "duration_ms": 480,
+        "thoughts": [
+          "杭州今日中雨，气温22°C",
+          "雨天交通拥堵，建议减少跨区移动",
+          "推荐商场/综合体一站式方案",
+          "室内场所人流量可能增大"
+        ]
+      },
+      {
+        "agent": "dining_agent",
+        "status": "complete",
+        "duration_ms": 900,
+        "thoughts": [
+          "雨天+亲子 → 优先有儿童区的餐厅",
+          "同商圈优先：城西银泰亲子餐厅、大悦城周边",
+          "海洋馆路线：推荐周边亲子餐厅",
+          "匹配到：哺哺亲子餐厅、蓝精灵亲子主题餐厅"
+        ]
+      },
+      {
+        "agent": "activity_agent",
+        "status": "complete",
+        "duration_ms": 850,
+        "thoughts": [
+          "室内+5岁 → 海洋公园、嘟嘟城、Do都城",
+          "海洋公园互动性强，看海豚表演",
+          "嘟嘟城职业体验，教育意义强",
+          "商场儿童区也是雨天好选择"
+        ]
+      },
+      {
+        "agent": "synthesizer",
+        "status": "complete",
+        "duration_ms": 650,
+        "thoughts": [
+          "方案A：海洋馆路线 → 最受孩子欢迎",
+          "方案B：商场亲子路线 → 最方便省心",
+          "雨天只出2个方案，减少选择困难"
+        ]
+      },
+      {
+        "agent": "critic",
+        "status": "complete",
+        "duration_ms": 400,
+        "thoughts": [
+          "方案A体验更好但需跨区",
+          "方案B更方便但体验略平",
+          "两个方案都完全室内，雨天无忧"
+        ]
+      }
+    ],
+    "plans": [
+      {
+        "id": "plan_a",
+        "name": "海洋探索 · 看海豚吃大餐",
+        "style": "体验型",
+        "total_cost": 528,
+        "total_duration_hours": 4.0,
+        "scores": {"cost": 6, "fun": 10, "convenience": 6, "fit": 9, "uniqueness": 9},
+        "nodes": [
+          {
+            "id": "n1",
+            "time": "14:00",
+            "duration_min": 25,
+            "type": "transport",
+            "title": "出发",
+            "subtitle": "滴滴快车 · 雨天约25分钟",
+            "cost": 35,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "14:25",
+            "duration_min": 150,
+            "type": "activity",
+            "title": "杭州极地海洋公园",
+            "subtitle": "海豚表演 · 4.5分 · 企鹅馆",
+            "cost": 310,
+            "venue_id": "hz_act_002",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "17:00",
+            "duration_min": 10,
+            "type": "transport",
+            "title": "打车前往",
+            "subtitle": "附近商场 · 约10分钟",
+            "cost": 15,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "17:10",
+            "duration_min": 70,
+            "type": "dining",
+            "title": "哺哺亲子餐厅(城西银泰店)",
+            "subtitle": "亲子餐厅 · 4.5分 · 有儿童区",
+            "cost": 198,
+            "venue_id": "hz_rest_031",
+            "status": "reserved"
+          },
+          {
+            "id": "n5",
+            "time": "18:20",
+            "duration_min": 20,
+            "type": "transport",
+            "title": "返程",
+            "subtitle": "滴滴快车 · 约20分钟",
+            "cost": 28,
+            "venue_id": null,
+            "status": "ready"
+          }
+        ]
+      },
+      {
+        "id": "plan_b",
+        "name": "商场亲子 · 省心一站式",
+        "style": "便捷型",
+        "total_cost": 438,
+        "total_duration_hours": 4.0,
+        "scores": {"cost": 7, "fun": 7, "convenience": 10, "fit": 8, "uniqueness": 5},
+        "nodes": [
+          {
+            "id": "n1",
+            "time": "14:00",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "出发",
+            "subtitle": "滴滴快车 · 约15分钟",
+            "cost": 18,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "14:15",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "Do都城少儿社会体验馆",
+            "subtitle": "职业体验 · 4.6分 · 50+职业",
+            "cost": 150,
+            "venue_id": "hz_act_003",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "15:45",
+            "duration_min": 5,
+            "type": "transport",
+            "title": "同商场内",
+            "subtitle": "步行2分钟",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "15:50",
+            "duration_min": 30,
+            "type": "activity",
+            "title": "乐高积木体验区",
+            "subtitle": "免费玩 · 创意搭建",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n5",
+            "time": "16:20",
+            "duration_min": 80,
+            "type": "dining",
+            "title": "蓝精灵亲子主题餐厅(大悦城店)",
+            "subtitle": "主题餐厅 · 4.4分 · 有游乐区",
+            "cost": 248,
+            "venue_id": "hz_rest_035",
+            "status": "reserved"
+          },
+          {
+            "id": "n6",
+            "time": "17:40",
+            "duration_min": 20,
+            "type": "transport",
+            "title": "返程",
+            "subtitle": "滴滴快车",
+            "cost": 22,
+            "venue_id": null,
+            "status": "ready"
+          }
+        ]
+      }
+    ],
+    "share_message": "下雨天也有好去处！\n🐬 14:25 杭州极地海洋公园看海豚\n🍽️ 17:10 哺哺亲子餐厅吃晚饭\n💰 总花费约528元\n\n全程室内不淋雨，已订好车和餐厅位，带好雨伞出发！",
+    "execution_summary": {
+      "taxi_booked": true,
+      "tickets_bought": true,
+      "restaurant_reserved": true,
+      "total_cost": 528
+    }
+  },
+  {
+    "id": "case_bj_family_sunny",
+    "title": "北京 · 科技少年半日游",
+    "subtitle": "6岁小科学家的探索下午",
+    "city": "北京",
+    "scene_type": "family",
+    "weather": "sunny",
+    "cover_emoji": "rocket",
+    "input": "周六带孩子出去玩，孩子6岁，对科技感兴趣，下午半天",
+    "intent": {
+      "scene_type": "family",
+      "city": "北京",
+      "group_size": 3,
+      "group_composition": ["adult_male", "adult_female", "child_6"],
+      "duration_hours": 4,
+      "time_start": "13:30",
+      "budget_total": 500,
+      "constraints": ["child_friendly", "science_tech"],
+      "weather": "sunny",
+      "preferences": ["科技", "教育", "互动"]
+    },
+    "agent_thinking": [
+      {
+        "agent": "orchestrator",
+        "status": "complete",
+        "duration_ms": 800,
+        "thoughts": [
+          "解析到家庭场景：带6岁科技迷孩子",
+          "核心需求：科技相关活动，互动体验",
+          "下午半天约4小时，需要紧凑安排",
+          "北京科技资源丰富：中国科技馆、天文馆、自然博物馆"
+        ]
+      },
+      {
+        "agent": "context_agent",
+        "status": "complete",
+        "duration_ms": 580,
+        "thoughts": [
+          "周六北京晴天，30°C，户外偏热",
+          "科技馆周六人流量大，建议早到",
+          "奥森公园在科技馆附近，可串联",
+          "交通：地铁8号线直达奥林匹克公园"
+        ]
+      },
+      {
+        "agent": "dining_agent",
+        "status": "complete",
+        "duration_ms": 950,
+        "thoughts": [
+          "科技馆附近餐饮选择有限",
+          "奥森附近：呷哺呷哺、局气",
+          "动物园附近：西直门商圈餐饮丰富",
+          "选择亲子友好+距离近的餐厅"
+        ]
+      },
+      {
+        "agent": "activity_agent",
+        "status": "complete",
+        "duration_ms": 1050,
+        "thoughts": [
+          "6岁+科技兴趣 → 中国科技馆是首选（5大展厅+IMAX）",
+          "天文馆适合太空迷，但与科技馆较远",
+          "奥森公园适合科技馆后户外放风",
+          "动物园也适合6岁，但非科技主题"
+        ]
+      },
+      {
+        "agent": "synthesizer",
+        "status": "complete",
+        "duration_ms": 780,
+        "thoughts": [
+          "方案A：科技馆路线 → 最匹配科技兴趣",
+          "方案B：奥森公园路线 → 科技馆+户外，节奏轻松",
+          "方案C：动物园路线 → 天文馆+动物园，多样体验"
+        ]
+      },
+      {
+        "agent": "critic",
+        "status": "complete",
+        "duration_ms": 420,
+        "thoughts": [
+          "方案A最匹配需求，IMAX电影对6岁有强吸引力",
+          "方案B节奏最好，有动有静",
+          "方案C路线稍长但内容丰富",
+          "三方案均适合6岁科技迷"
+        ]
+      }
+    ],
+    "plans": [
+      {
+        "id": "plan_a",
+        "name": "科技馆深度游 · 小小科学家",
+        "style": "教育型",
+        "total_cost": 326,
+        "total_duration_hours": 4.5,
+        "scores": {"cost": 9, "fun": 9, "convenience": 8, "fit": 10, "uniqueness": 8},
+        "nodes": [
+          {
+            "id": "n1",
+            "time": "13:30",
+            "duration_min": 30,
+            "type": "transport",
+            "title": "地铁出发",
+            "subtitle": "地铁8号线 · 奥林匹克公园站",
+            "cost": 12,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "14:00",
+            "duration_min": 150,
+            "type": "activity",
+            "title": "中国科技馆",
+            "subtitle": "5大展厅 · 4.7分 · 互动体验",
+            "cost": 90,
+            "venue_id": "bj_act_001",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "16:30",
+            "duration_min": 45,
+            "type": "activity",
+            "title": "IMAX球幕影院",
+            "subtitle": "太空探索纪录片 · 震撼",
+            "cost": 30,
+            "venue_id": "bj_act_001",
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "17:15",
+            "duration_min": 10,
+            "type": "transport",
+            "title": "步行前往",
+            "subtitle": "科技馆附近商圈",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n5",
+            "time": "17:25",
+            "duration_min": 70,
+            "type": "dining",
+            "title": "局气(奥体店)",
+            "subtitle": "网红京菜 · 4.4分 · 兔爷土豆泥",
+            "cost": 194,
+            "venue_id": "bj_rest_030",
+            "status": "reserved"
+          },
+          {
+            "id": "n6",
+            "time": "18:35",
+            "duration_min": 30,
+            "type": "transport",
+            "title": "地铁返程",
+            "subtitle": "地铁8号线",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          }
+        ]
+      },
+      {
+        "id": "plan_b",
+        "name": "科技+自然 · 动静结合",
+        "style": "平衡型",
+        "total_cost": 278,
+        "total_duration_hours": 4.5,
+        "scores": {"cost": 9, "fun": 8, "convenience": 8, "fit": 8, "uniqueness": 7},
+        "nodes": [
+          {
+            "id": "n1",
+            "time": "13:30",
+            "duration_min": 30,
+            "type": "transport",
+            "title": "地铁出发",
+            "subtitle": "地铁8号线 · 森林公园南门站",
+            "cost": 12,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "14:00",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "奥林匹克森林公园",
+            "subtitle": "骑行+放风筝 · 免费 · 4.7分",
+            "cost": 40,
+            "venue_id": "bj_act_011",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "15:30",
+            "duration_min": 10,
+            "type": "transport",
+            "title": "步行前往",
+            "subtitle": "步行到科技馆约10分钟",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "15:40",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "中国科技馆(精选2个展厅)",
+            "subtitle": "探索与发现+科技与生活",
+            "cost": 90,
+            "venue_id": "bj_act_001",
+            "status": "ready"
+          },
+          {
+            "id": "n5",
+            "time": "17:10",
+            "duration_min": 10,
+            "type": "transport",
+            "title": "步行",
+            "subtitle": "附近用餐",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n6",
+            "time": "17:20",
+            "duration_min": 60,
+            "type": "dining",
+            "title": "呷哺呷哺(奥体店)",
+            "subtitle": "小火锅 · 4.1分 · 人均68 · 快速",
+            "cost": 136,
+            "venue_id": "bj_rest_011",
+            "status": "ready"
+          },
+          {
+            "id": "n7",
+            "time": "18:20",
+            "duration_min": 30,
+            "type": "transport",
+            "title": "地铁返程",
+            "subtitle": "地铁8号线",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          }
+        ]
+      },
+      {
+        "id": "plan_c",
+        "name": "星空之旅 · 天文馆+动物园",
+        "style": "探索型",
+        "total_cost": 385,
+        "total_duration_hours": 4.5,
+        "scores": {"cost": 8, "fun": 9, "convenience": 6, "fit": 9, "uniqueness": 9},
+        "nodes": [
+          {
+            "id": "n1",
+            "time": "13:30",
+            "duration_min": 25,
+            "type": "transport",
+            "title": "地铁出发",
+            "subtitle": "地铁4号线 · 动物园站",
+            "cost": 8,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "13:55",
+            "duration_min": 100,
+            "type": "activity",
+            "title": "北京天文馆",
+            "subtitle": "4D球幕电影 · 4.6分 · 星空体验",
+            "cost": 45,
+            "venue_id": "bj_act_003",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "15:35",
+            "duration_min": 5,
+            "type": "transport",
+            "title": "步行",
+            "subtitle": "天文馆旁即动物园",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "15:40",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "北京动物园(大熊猫馆)",
+            "subtitle": "看国宝 · 4.6分 · 孩子最爱",
+            "cost": 55,
+            "venue_id": "bj_act_005",
+            "status": "ready"
+          },
+          {
+            "id": "n5",
+            "time": "17:10",
+            "duration_min": 10,
+            "type": "transport",
+            "title": "步行",
+            "subtitle": "西直门商圈",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n6",
+            "time": "17:20",
+            "duration_min": 70,
+            "type": "dining",
+            "title": "京味斋(西直门店)",
+            "subtitle": "老北京菜 · 4.3分 · 炸酱面",
+            "cost": 245,
+            "venue_id": "bj_rest_006",
+            "status": "reserved"
+          },
+          {
+            "id": "n7",
+            "time": "18:30",
+            "duration_min": 20,
+            "type": "transport",
+            "title": "地铁返程",
+            "subtitle": "地铁4号线/2号线",
+            "cost": 8,
+            "venue_id": null,
+            "status": "ready"
+          }
+        ]
+      }
+    ],
+    "share_message": "周六亲子科技之旅安排好了！\n🚀 14:00 中国科技馆（5大展厅随便玩）\n🎬 16:30 IMAX球幕看太空纪录片\n🍽️ 17:25 局气吃饭（兔爷土豆泥孩子超爱）\n💰 总花费约326元\n\n门票已预约，餐厅已订位，坐地铁8号线直达！",
+    "execution_summary": {
+      "taxi_booked": false,
+      "tickets_bought": true,
+      "restaurant_reserved": true,
+      "total_cost": 326
+    }
+  },
   {
     "id": "case_bj_friends_sunny",
-    "title": "北京 · 798文艺一日游",
-    "subtitle": "798艺术区 + 三里屯 + 创意料理",
+    "title": "北京 · 文艺青年周末漫游",
+    "subtitle": "4个文艺青年的300元品质之旅",
     "city": "北京",
     "scene_type": "friends",
     "weather": "sunny",
     "cover_emoji": "art",
-    "input": "和3个朋友想去798逛逛，然后三里屯坐坐，晚上吃点有意思的创意料理，预算不限",
+    "input": "4个朋友周末下午出来逛逛，喜欢文艺的地方，预算人均300",
     "intent": {
       "scene_type": "friends",
       "city": "北京",
       "group_size": 4,
-      "duration_hours": 9,
-      "preferences": ["798艺术区", "三里屯", "创意料理"],
-      "budget_per_person": null,
-      "start_time": "10:00"
+      "group_composition": ["adult", "adult", "adult", "adult"],
+      "duration_hours": 5,
+      "time_start": "13:00",
+      "budget_per_person": 300,
+      "budget_total": 1200,
+      "constraints": ["artistic", "cultural"],
+      "weather": "sunny",
+      "preferences": ["文艺", "展览", "拍照", "特色美食"]
     },
     "agent_thinking": [
       {
         "agent": "orchestrator",
         "status": "complete",
-        "duration_ms": 750,
+        "duration_ms": 830,
         "thoughts": [
-          "解析到朋友聚会场景：4人出行",
-          "关键词：798艺术区、三里屯、创意料理",
-          "预算不限 → 可推荐中高端餐厅",
-          "全天行程约9小时，节奏可以松弛"
+          "解析到朋友场景：4人文艺聚会",
+          "核心标签：文艺、展览、有氛围",
+          "预算人均300偏宽裕，可安排品质活动",
+          "北京文艺地标丰富：798、什刹海、南锣、五道营"
         ]
       },
       {
-        "agent": "context",
+        "agent": "context_agent",
         "status": "complete",
-        "duration_ms": 290,
+        "duration_ms": 560,
         "thoughts": [
-          "查询北京天气：晴，29°C，适合户外逛街",
-          "周六，798预计人流较大，建议早到",
-          "798到三里屯约6km，打车15分钟"
+          "周末北京晴天，26°C，户外很舒适",
+          "798周末有多个新展开幕",
+          "什刹海傍晚最美，建议安排到后半段",
+          "南锣+五道营可串联，步行可达"
         ]
       },
       {
-        "agent": "dining",
+        "agent": "dining_agent",
         "status": "complete",
-        "duration_ms": 1400,
+        "duration_ms": 1100,
         "thoughts": [
-          "搜索条件：创意料理 + 三里屯/朝阳 + 评分4.5+",
-          "高德POI返回42家，筛选后Top8",
-          "优选：Taco Bar(4.8)、京A精酿(4.7)、和木私厨(4.9)、FEAST(4.7)",
-          "午餐：798内部有多家咖啡馆和简餐"
+          "文艺朋友聚餐 → 注重氛围和颜值",
+          "798附近：创意园区内有不少文艺餐厅",
+          "什刹海：那里花园（花园餐厅出片率高）",
+          "五道营：京兆尹（米其林素食）、TRB（古寺法餐，超预算）",
+          "南锣附近：一坐一忘（云南菜氛围好）"
         ]
       },
       {
-        "agent": "activity",
+        "agent": "activity_agent",
         "status": "complete",
-        "duration_ms": 1150,
+        "duration_ms": 950,
         "thoughts": [
-          "798艺术区：UCCA当代艺术中心(当前展览)、各画廊",
-          "三里屯：太古里逛街、红馆、Page One书店",
-          "备选：五道营胡同(文艺)、亮马河(夜景)"
+          "文艺标签 → 798艺术区、美术馆、胡同CityWalk",
+          "798：UCCA尤伦斯当代艺术中心有大展",
+          "什刹海：环湖CityWalk+鼓楼",
+          "南锣+五道营：文创小店+独立咖啡",
+          "中国美术馆：免费但周末可能排队"
         ]
       },
       {
         "agent": "synthesizer",
         "status": "complete",
-        "duration_ms": 2300,
+        "duration_ms": 880,
         "thoughts": [
-          "方案A(经典文艺线)：798 → 三里屯 → 和木私厨",
-          "方案B(潮流线)：798 → 三里屯 → Taco Bar + 京A精酿",
-          "方案C(深度线)：798 → 五道营胡同 → 亮马河创意料理",
-          "方案A最精致，方案B最热闹，方案C最小众"
+          "方案A：798艺术区全天 → 当代艺术爱好者首选",
+          "方案B：什刹海环湖CityWalk → 老北京韵味+湖景",
+          "方案C：南锣+前门胡同漫游 → 京味文化体验"
         ]
       },
       {
         "agent": "critic",
         "status": "complete",
-        "duration_ms": 170,
+        "duration_ms": 480,
         "thoughts": [
-          "校验3个方案：全部通过",
-          "方案A人均最高但体验最佳，方案B氛围最好，方案C最有探索感"
+          "方案A最文艺，但798位置偏东北",
+          "方案B景色最好，日落什刹海很美",
+          "方案C最有北京味，但南锣周末人多",
+          "三方案均在预算内，推荐A为文艺首选"
         ]
       }
     ],
     "plans": [
       {
         "id": "plan_a",
-        "name": "798 + 和木私厨 · 精致文艺日",
-        "style": "品质型",
-        "total_cost": 1904,
-        "total_duration_hours": 9.0,
-        "scores": { "cost": 5, "fun": 9, "convenience": 8, "fit": 10, "uniqueness": 10 },
+        "name": "798当代艺术 · 看展拍照一整天",
+        "style": "文艺型",
+        "total_cost": 1080,
+        "total_duration_hours": 5.5,
+        "scores": {"cost": 7, "fun": 9, "convenience": 7, "fit": 10, "uniqueness": 10},
         "nodes": [
-          { "id": "n1", "time": "10:00", "duration_min": 25, "type": "transport", "title": "出发", "subtitle": "地铁14号线望京南站", "cost": 12, "status": "ready" },
-          { "id": "n2", "time": "10:25", "duration_min": 60, "type": "activity", "title": "UCCA尤伦斯当代艺术中心", "subtitle": "当前展《未来考古》· 票价100/人", "cost": 400, "status": "ready" },
-          { "id": "n3", "time": "11:25", "duration_min": 90, "type": "activity", "title": "798艺术区自由逛", "subtitle": "画廊+涂鸦墙+文创店 · 免费", "cost": 0, "status": "ready" },
-          { "id": "n4", "time": "12:55", "duration_min": 60, "type": "dining", "title": "AT Cafe(798店)", "subtitle": "轻食简餐 · 4.6分 · 人均55", "cost": 220, "status": "ready" },
-          { "id": "n5", "time": "13:55", "duration_min": 20, "type": "transport", "title": "打车到三里屯", "subtitle": "滴滴快车 · 约20分钟", "cost": 32, "status": "ready" },
-          { "id": "n6", "time": "14:15", "duration_min": 120, "type": "activity", "title": "三里屯太古里逛街", "subtitle": "潮牌+Page One书店+街拍", "cost": 0, "status": "ready" },
-          { "id": "n7", "time": "16:15", "duration_min": 60, "type": "activity", "title": "三里屯红馆 + 咖啡", "subtitle": "网红打卡地 · 下午茶", "cost": 120, "status": "ready" },
-          { "id": "n8", "time": "17:15", "duration_min": 15, "type": "transport", "title": "步行前往餐厅", "subtitle": "约15分钟", "cost": 0, "status": "ready" },
-          { "id": "n9", "time": "17:30", "duration_min": 120, "type": "dining", "title": "和木私厨(三里屯店)", "subtitle": "创意融合菜 · 4.9分 · 人均280 · 已预约", "cost": 1120, "status": "reserved" },
-          { "id": "n10", "time": "19:30", "duration_min": 0, "type": "transport", "title": "各自返程", "subtitle": "地铁团结湖站/打车", "cost": 0, "status": "ready" }
+          {
+            "id": "n1",
+            "time": "13:00",
+            "duration_min": 30,
+            "type": "transport",
+            "title": "集合出发",
+            "subtitle": "打车到798 · 约30分钟",
+            "cost": 80,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "13:30",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "UCCA尤伦斯当代艺术中心",
+            "subtitle": "当代艺术大展 · 必看",
+            "cost": 240,
+            "venue_id": "bj_act_008",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "15:00",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "798园区漫步拍照",
+            "subtitle": "工业风建筑 · 各色画廊 · 免费",
+            "cost": 0,
+            "venue_id": "bj_act_008",
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "16:30",
+            "duration_min": 45,
+            "type": "dining",
+            "title": "798园区咖啡馆下午茶",
+            "subtitle": "精品咖啡 · 工业风",
+            "cost": 160,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n5",
+            "time": "17:15",
+            "duration_min": 20,
+            "type": "transport",
+            "title": "打车前往",
+            "subtitle": "前往三里屯 · 约20分钟",
+            "cost": 40,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n6",
+            "time": "17:35",
+            "duration_min": 90,
+            "type": "dining",
+            "title": "一坐一忘(三里屯店)",
+            "subtitle": "创意云南菜 · 4.4分 · 人均128",
+            "cost": 512,
+            "venue_id": "bj_rest_038",
+            "status": "reserved"
+          },
+          {
+            "id": "n7",
+            "time": "19:05",
+            "duration_min": 25,
+            "type": "activity",
+            "title": "三里屯太古里闲逛",
+            "subtitle": "夜景 · 潮流地标",
+            "cost": 0,
+            "venue_id": "bj_act_016",
+            "status": "ready"
+          },
+          {
+            "id": "n8",
+            "time": "19:30",
+            "duration_min": 0,
+            "type": "transport",
+            "title": "散场",
+            "subtitle": "各自打车/地铁",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          }
         ]
       },
       {
         "id": "plan_b",
-        "name": "798 + 精酿夜 · 潮流派对",
-        "style": "社交型",
-        "total_cost": 1324,
-        "total_duration_hours": 9.0,
-        "scores": { "cost": 7, "fun": 10, "convenience": 8, "fit": 9, "uniqueness": 8 },
+        "name": "什刹海漫游 · 日落湖景",
+        "style": "浪漫型",
+        "total_cost": 920,
+        "total_duration_hours": 5.0,
+        "scores": {"cost": 8, "fun": 8, "convenience": 8, "fit": 9, "uniqueness": 8},
         "nodes": [
-          { "id": "n1", "time": "10:00", "duration_min": 25, "type": "transport", "title": "出发", "subtitle": "地铁14号线望京南站", "cost": 12, "status": "ready" },
-          { "id": "n2", "time": "10:25", "duration_min": 150, "type": "activity", "title": "798艺术区深度游", "subtitle": "UCCA+各画廊+涂鸦墙 · UCCA票100/人", "cost": 400, "status": "ready" },
-          { "id": "n3", "time": "13:00", "duration_min": 50, "type": "dining", "title": "798火车头广场小吃", "subtitle": "各类小吃拼盘 · 人均40", "cost": 160, "status": "ready" },
-          { "id": "n4", "time": "13:50", "duration_min": 20, "type": "transport", "title": "打车到三里屯", "subtitle": "滴滴快车 · 约20分钟", "cost": 32, "status": "ready" },
-          { "id": "n5", "time": "14:10", "duration_min": 90, "type": "activity", "title": "三里屯太古里", "subtitle": "逛街+拍照+奶茶", "cost": 60, "status": "ready" },
-          { "id": "n6", "time": "15:40", "duration_min": 10, "type": "transport", "title": "步行", "subtitle": "约10分钟", "cost": 0, "status": "ready" },
-          { "id": "n7", "time": "15:50", "duration_min": 70, "type": "dining", "title": "Taco Bar(三里屯店)", "subtitle": "墨西哥创意料理 · 4.8分 · 人均85", "cost": 340, "status": "reserved" },
-          { "id": "n8", "time": "17:00", "duration_min": 120, "type": "dining", "title": "京A精酿餐吧(三里屯店)", "subtitle": "精酿啤酒+小食 · 4.7分 · 人均80", "cost": 320, "status": "reserved" },
-          { "id": "n9", "time": "19:00", "duration_min": 0, "type": "transport", "title": "各自返程", "subtitle": "打车/地铁", "cost": 0, "status": "ready" }
+          {
+            "id": "n1",
+            "time": "13:00",
+            "duration_min": 20,
+            "type": "transport",
+            "title": "集合出发",
+            "subtitle": "地铁到什刹海站",
+            "cost": 24,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "13:20",
+            "duration_min": 40,
+            "type": "activity",
+            "title": "Metal Hands精品咖啡",
+            "subtitle": "五道营胡同 · 4.7分 · 拉花艺术",
+            "cost": 168,
+            "venue_id": "bj_rest_033",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "14:00",
+            "duration_min": 60,
+            "type": "activity",
+            "title": "五道营胡同CityWalk",
+            "subtitle": "文艺小店 · 独立咖啡 · 安静",
+            "cost": 0,
+            "venue_id": "bj_act_025",
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "15:00",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "步行前往",
+            "subtitle": "步行约15分钟到什刹海",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n5",
+            "time": "15:15",
+            "duration_min": 105,
+            "type": "activity",
+            "title": "什刹海环湖CityWalk",
+            "subtitle": "湖景 · 胡同 · 银锭桥日落",
+            "cost": 0,
+            "venue_id": "bj_act_023",
+            "status": "ready"
+          },
+          {
+            "id": "n6",
+            "time": "17:00",
+            "duration_min": 90,
+            "type": "dining",
+            "title": "那里花园(什刹海店)",
+            "subtitle": "花园餐厅 · 4.5分 · 湖景",
+            "cost": 632,
+            "venue_id": "bj_rest_032",
+            "status": "reserved"
+          },
+          {
+            "id": "n7",
+            "time": "18:30",
+            "duration_min": 30,
+            "type": "activity",
+            "title": "后海酒吧街散步",
+            "subtitle": "华灯初上 · 夜景",
+            "cost": 0,
+            "venue_id": "bj_act_023",
+            "status": "ready"
+          },
+          {
+            "id": "n8",
+            "time": "19:00",
+            "duration_min": 0,
+            "type": "transport",
+            "title": "散场",
+            "subtitle": "各自地铁/打车",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          }
         ]
       },
       {
         "id": "plan_c",
-        "name": "798 + 五道营 · 小众深度游",
-        "style": "探索型",
-        "total_cost": 1426,
-        "total_duration_hours": 9.5,
-        "scores": { "cost": 6, "fun": 8, "convenience": 6, "fit": 8, "uniqueness": 10 },
+        "name": "南锣+前门 · 老北京文化之旅",
+        "style": "文化型",
+        "total_cost": 860,
+        "total_duration_hours": 5.0,
+        "scores": {"cost": 8, "fun": 8, "convenience": 7, "fit": 8, "uniqueness": 8},
         "nodes": [
-          { "id": "n1", "time": "10:00", "duration_min": 25, "type": "transport", "title": "出发", "subtitle": "地铁14号线望京南站", "cost": 12, "status": "ready" },
-          { "id": "n2", "time": "10:25", "duration_min": 120, "type": "activity", "title": "798艺术区", "subtitle": "UCCA + 独立画廊 · 票100/人", "cost": 400, "status": "ready" },
-          { "id": "n3", "time": "12:25", "duration_min": 45, "type": "dining", "title": "Cafe Zarah(798店)", "subtitle": "德式简餐 · 4.6分 · 人均60", "cost": 240, "status": "ready" },
-          { "id": "n4", "time": "13:10", "duration_min": 25, "type": "transport", "title": "打车到五道营", "subtitle": "滴滴快车 · 约25分钟", "cost": 36, "status": "ready" },
-          { "id": "n5", "time": "13:35", "duration_min": 90, "type": "activity", "title": "五道营胡同Citywalk", "subtitle": "1km · 独立小店+咖啡+文创", "cost": 60, "status": "ready" },
-          { "id": "n6", "time": "15:05", "duration_min": 60, "type": "activity", "title": "雍和宫", "subtitle": "门票25/人 · 祈福", "cost": 100, "status": "ready" },
-          { "id": "n7", "time": "16:05", "duration_min": 25, "type": "transport", "title": "打车到亮马河", "subtitle": "滴滴快车 · 约25分钟", "cost": 38, "status": "ready" },
-          { "id": "n8", "time": "16:30", "duration_min": 60, "type": "activity", "title": "亮马河国际风情水岸", "subtitle": "河边散步 · 等日落 · 免费", "cost": 0, "status": "ready" },
-          { "id": "n9", "time": "17:30", "duration_min": 120, "type": "dining", "title": "FEAST丰食(亮马桥店)", "subtitle": "创意融合料理 · 4.7分 · 人均135 · 已预约", "cost": 540, "status": "reserved" },
-          { "id": "n10", "time": "19:30", "duration_min": 0, "type": "transport", "title": "各自返程", "subtitle": "打车/地铁", "cost": 0, "status": "ready" }
+          {
+            "id": "n1",
+            "time": "13:00",
+            "duration_min": 15,
+            "type": "transport",
+            "title": "集合出发",
+            "subtitle": "地铁6号线 · 南锣鼓巷站",
+            "cost": 24,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n2",
+            "time": "13:15",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "南锣鼓巷CityWalk",
+            "subtitle": "胡同文化 · 文创小店 · 4.3分",
+            "cost": 60,
+            "venue_id": "bj_act_022",
+            "status": "ready"
+          },
+          {
+            "id": "n3",
+            "time": "14:45",
+            "duration_min": 40,
+            "type": "dining",
+            "title": "% Arabica(太古里店)",
+            "subtitle": "日式咖啡 · 4.4分 · 拍照",
+            "cost": 192,
+            "venue_id": "bj_rest_035",
+            "status": "ready"
+          },
+          {
+            "id": "n4",
+            "time": "15:25",
+            "duration_min": 20,
+            "type": "transport",
+            "title": "地铁换乘",
+            "subtitle": "6号线转2号线 · 到前门",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n5",
+            "time": "15:45",
+            "duration_min": 90,
+            "type": "activity",
+            "title": "前门大街+大栅栏CityWalk",
+            "subtitle": "百年老街 · 老字号 · 中轴线",
+            "cost": 0,
+            "venue_id": "bj_act_024",
+            "status": "ready"
+          },
+          {
+            "id": "n6",
+            "time": "17:15",
+            "duration_min": 5,
+            "type": "transport",
+            "title": "步行",
+            "subtitle": "前门大街内步行",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n7",
+            "time": "17:20",
+            "duration_min": 90,
+            "type": "dining",
+            "title": "四季民福(故宫店)",
+            "subtitle": "烤鸭 · 4.5分 · 故宫景观",
+            "cost": 592,
+            "venue_id": "bj_rest_004",
+            "status": "reserved"
+          },
+          {
+            "id": "n8",
+            "time": "18:50",
+            "duration_min": 10,
+            "type": "activity",
+            "title": "故宫角楼夜景",
+            "subtitle": "拍照打卡 · 免费",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          },
+          {
+            "id": "n9",
+            "time": "19:00",
+            "duration_min": 0,
+            "type": "transport",
+            "title": "散场",
+            "subtitle": "各自返程",
+            "cost": 0,
+            "venue_id": null,
+            "status": "ready"
+          }
         ]
       }
     ],
-    "share_message": "文艺一日游安排好了！🎨\n10:25 798艺术区（UCCA必看）\n12:55 AT Cafe午餐\n14:15 三里屯太古里逛逛\n17:30 和木私厨创意料理（已预约✨）\n人均约476元，周末见！",
-    "execution_summary": { "taxi_booked": true, "tickets_bought": true, "restaurant_reserved": true, "total_cost": 1904 }
+    "share_message": "文艺青年周末安排好了！\n🎨 13:30 798 UCCA看当代艺术大展\n📸 15:00 798园区拍工业风大片\n☕ 16:30 园区咖啡馆下午茶\n🍽️ 17:35 三里屯一坐一忘云南菜\n💰 人均约270元\n\n展票已买，餐厅已订，准备出发！",
+    "execution_summary": {
+      "taxi_booked": true,
+      "tickets_bought": true,
+      "restaurant_reserved": true,
+      "total_cost": 1080
+    }
   },
-
   {
-    "id": "case_dynamic",
-    "title": "动态调整 · 多轮对话",
-    "subtitle": "从\"随便逛逛\"到完美方案的3轮进化",
+    "id": "case_hz_dynamic_adjust",
+    "title": "杭州 · 实时调整的亲子计划",
+    "subtitle": "看AI如何灵活应对需求变化",
     "city": "杭州",
-    "scene_type": "couple",
+    "scene_type": "family",
     "weather": "sunny",
     "cover_emoji": "sparkles",
-    "input": "周六和女朋友出去逛逛，没什么特别想法",
-    "intent": {
-      "scene_type": "couple",
-      "city": "杭州",
-      "group_size": 2,
-      "duration_hours": 6,
-      "preferences": [],
-      "start_time": "10:00"
+    "is_multi_turn": true,
+    "turns": [
+      {
+        "turn": 1,
+        "input": "帮我安排周六下午的亲子活动",
+        "intent": {
+          "scene_type": "family",
+          "city": "杭州",
+          "group_size": 3,
+          "duration_hours": 4,
+          "time_start": "14:00",
+          "constraints": ["child_friendly"],
+          "weather": "sunny"
+        },
+        "agent_thinking": [
+          {
+            "agent": "orchestrator",
+            "status": "complete",
+            "duration_ms": 750,
+            "thoughts": [
+              "初始请求：周六下午亲子活动",
+              "信息不全：未指定孩子年龄、预算、偏好",
+              "使用默认值：孩子5-8岁、预算500、4小时",
+              "生成初始方案，等待用户反馈调整"
+            ]
+          }
+        ],
+        "plan": {
+          "id": "plan_v1",
+          "name": "亲子乐园+轻食晚餐",
+          "total_cost": 398,
+          "total_duration_hours": 4.0,
+          "nodes": [
+            {
+              "id": "n1",
+              "time": "14:00",
+              "duration_min": 15,
+              "type": "transport",
+              "title": "出发",
+              "subtitle": "滴滴快车 · 约15分钟",
+              "cost": 18,
+              "venue_id": null,
+              "status": "ready"
+            },
+            {
+              "id": "n2",
+              "time": "14:15",
+              "duration_min": 120,
+              "type": "activity",
+              "title": "嘟嘟城儿童职业体验馆",
+              "subtitle": "职业体验 · 4.6分",
+              "cost": 196,
+              "venue_id": "hz_act_001",
+              "status": "ready"
+            },
+            {
+              "id": "n3",
+              "time": "16:15",
+              "duration_min": 10,
+              "type": "transport",
+              "title": "步行前往",
+              "subtitle": "约10分钟",
+              "cost": 0,
+              "venue_id": null,
+              "status": "ready"
+            },
+            {
+              "id": "n4",
+              "time": "16:25",
+              "duration_min": 70,
+              "type": "dining",
+              "title": "gaga鲜语(来福士店)",
+              "subtitle": "轻食 · 4.5分 · 人均62",
+              "cost": 186,
+              "venue_id": "hz_rest_013",
+              "status": "reserved"
+            },
+            {
+              "id": "n5",
+              "time": "17:35",
+              "duration_min": 15,
+              "type": "transport",
+              "title": "返程",
+              "subtitle": "滴滴快车",
+              "cost": 20,
+              "venue_id": null,
+              "status": "ready"
+            }
+          ]
+        },
+        "share_message": "初版安排：嘟嘟城玩+gaga鲜语吃饭，约398元"
+      },
+      {
+        "turn": 2,
+        "input": "把餐厅换成火锅",
+        "intent_delta": {
+          "dining_preference": "火锅",
+          "override": "restaurant_only"
+        },
+        "agent_thinking": [
+          {
+            "agent": "orchestrator",
+            "status": "complete",
+            "duration_ms": 450,
+            "thoughts": [
+              "用户调整：餐厅从轻食换成火锅",
+              "只需调整dining节点，活动不变",
+              "调用 dining_agent 重新推荐火锅餐厅"
+            ]
+          },
+          {
+            "agent": "dining_agent",
+            "status": "complete",
+            "duration_ms": 680,
+            "thoughts": [
+              "筛选条件：火锅 + child_friendly + 嘟嘟城附近",
+              "匹配到：海底捞(湖滨银泰)、巴奴(万象城)、凑凑(嘉里中心)",
+              "海底捞有儿童区，最适合亲子，距离也合理",
+              "替换n4节点：gaga鲜语 → 海底捞"
+            ]
+          }
+        ],
+        "plan_diff": {
+          "changed_nodes": ["n4"],
+          "old_n4": {
+            "title": "gaga鲜语(来福士店)",
+            "subtitle": "轻食 · 4.5分 · 人均62",
+            "cost": 186
+          },
+          "new_n4": {
+            "id": "n4",
+            "time": "16:25",
+            "duration_min": 90,
+            "type": "dining",
+            "title": "海底捞火锅(湖滨银泰店)",
+            "subtitle": "火锅 · 4.5分 · 有儿童区 · 人均145",
+            "cost": 435,
+            "venue_id": "hz_rest_017",
+            "status": "reserved"
+          }
+        },
+        "plan": {
+          "id": "plan_v2",
+          "name": "亲子乐园+海底捞火锅",
+          "total_cost": 669,
+          "total_duration_hours": 4.3,
+          "nodes": [
+            {
+              "id": "n1",
+              "time": "14:00",
+              "duration_min": 15,
+              "type": "transport",
+              "title": "出发",
+              "subtitle": "滴滴快车 · 约15分钟",
+              "cost": 18,
+              "venue_id": null,
+              "status": "ready"
+            },
+            {
+              "id": "n2",
+              "time": "14:15",
+              "duration_min": 120,
+              "type": "activity",
+              "title": "嘟嘟城儿童职业体验馆",
+              "subtitle": "职业体验 · 4.6分",
+              "cost": 196,
+              "venue_id": "hz_act_001",
+              "status": "ready"
+            },
+            {
+              "id": "n3",
+              "time": "16:15",
+              "duration_min": 10,
+              "type": "transport",
+              "title": "步行前往",
+              "subtitle": "约10分钟",
+              "cost": 0,
+              "venue_id": null,
+              "status": "ready"
+            },
+            {
+              "id": "n4",
+              "time": "16:25",
+              "duration_min": 90,
+              "type": "dining",
+              "title": "海底捞火锅(湖滨银泰店)",
+              "subtitle": "火锅 · 4.5分 · 有儿童区 · 人均145",
+              "cost": 435,
+              "venue_id": "hz_rest_017",
+              "status": "reserved"
+            },
+            {
+              "id": "n5",
+              "time": "17:55",
+              "duration_min": 15,
+              "type": "transport",
+              "title": "返程",
+              "subtitle": "滴滴快车",
+              "cost": 20,
+              "venue_id": null,
+              "status": "ready"
+            }
+          ]
+        },
+        "share_message": "已更新！餐厅换成海底捞了：\n🎠 嘟嘟城玩2小时 → 🍲 海底捞火锅（有儿童区）\n💰 总费用调整为669元"
+      },
+      {
+        "turn": 3,
+        "input": "下午3点我有个电话要打，需要留1小时",
+        "intent_delta": {
+          "blocked_time": {"start": "15:00", "end": "16:00", "reason": "电话会议"},
+          "override": "schedule_only"
+        },
+        "agent_thinking": [
+          {
+            "agent": "orchestrator",
+            "status": "complete",
+            "duration_ms": 620,
+            "thoughts": [
+              "用户新增时间约束：15:00-16:00要打电话",
+              "需要重排时间线，但保持活动和餐厅不变",
+              "方案1：活动拆成两段，15:00-16:00空出来",
+              "方案2：延后出发到16:00",
+              "选择方案1：先玩1小时→打电话→继续玩→吃饭"
+            ]
+          },
+          {
+            "agent": "synthesizer",
+            "status": "complete",
+            "duration_ms": 550,
+            "thoughts": [
+              "时间重排：14:00-15:00玩嘟嘟城 → 15:00-16:00打电话（在嘟嘟城休息区）→ 16:00-17:00继续玩 → 17:00吃海底捞",
+              "嘟嘟城空间大，可以在休息区安静打电话",
+              "海底捞晚餐时间顺延到17:10",
+              "总时长从4小时延长到4.5小时"
+            ]
+          }
+        ],
+        "plan_diff": {
+          "changed_nodes": ["n2", "n2b", "n_break", "n4"],
+          "description": "嘟嘟城拆分为两段，中间插入1小时电话时间"
+        },
+        "plan": {
+          "id": "plan_v3",
+          "name": "亲子乐园+电话间歇+海底捞",
+          "total_cost": 669,
+          "total_duration_hours": 4.8,
+          "nodes": [
+            {
+              "id": "n1",
+              "time": "14:00",
+              "duration_min": 15,
+              "type": "transport",
+              "title": "出发",
+              "subtitle": "滴滴快车 · 约15分钟",
+              "cost": 18,
+              "venue_id": null,
+              "status": "ready"
+            },
+            {
+              "id": "n2",
+              "time": "14:15",
+              "duration_min": 45,
+              "type": "activity",
+              "title": "嘟嘟城（上半场）",
+              "subtitle": "先玩消防员和医生体验",
+              "cost": 196,
+              "venue_id": "hz_act_001",
+              "status": "ready"
+            },
+            {
+              "id": "n_break",
+              "time": "15:00",
+              "duration_min": 60,
+              "type": "break",
+              "title": "📞 电话时间",
+              "subtitle": "在嘟嘟城休息区打电话 · 孩子继续玩",
+              "cost": 0,
+              "venue_id": null,
+              "status": "ready"
+            },
+            {
+              "id": "n2b",
+              "time": "16:00",
+              "duration_min": 45,
+              "type": "activity",
+              "title": "嘟嘟城（下半场）",
+              "subtitle": "继续体验飞行员和建筑师",
+              "cost": 0,
+              "venue_id": "hz_act_001",
+              "status": "ready"
+            },
+            {
+              "id": "n3",
+              "time": "16:45",
+              "duration_min": 15,
+              "type": "transport",
+              "title": "打车前往",
+              "subtitle": "约15分钟到湖滨银泰",
+              "cost": 18,
+              "venue_id": null,
+              "status": "ready"
+            },
+            {
+              "id": "n4",
+              "time": "17:00",
+              "duration_min": 90,
+              "type": "dining",
+              "title": "海底捞火锅(湖滨银泰店)",
+              "subtitle": "火锅 · 4.5分 · 有儿童区 · 人均145",
+              "cost": 435,
+              "venue_id": "hz_rest_017",
+              "status": "reserved"
+            },
+            {
+              "id": "n5",
+              "time": "18:30",
+              "duration_min": 15,
+              "type": "transport",
+              "title": "返程",
+              "subtitle": "滴滴快车",
+              "cost": 20,
+              "venue_id": null,
+              "status": "ready"
+            }
+          ]
+        },
+        "share_message": "方案已调整，留出了打电话时间！\n🎠 14:15-15:00 嘟嘟城上半场\n📞 15:00-16:00 打电话（孩子继续玩）\n🎠 16:00-16:45 嘟嘟城下半场\n🍲 17:00 海底捞火锅\n💰 总费用不变：669元\n\n打电话时孩子在嘟嘟城有工作人员看护，你可以安心打电话！"
+      }
+    ],
+    "final_plan": {
+      "id": "plan_v3",
+      "name": "亲子乐园+电话间歇+海底捞",
+      "total_cost": 669,
+      "total_duration_hours": 4.8,
+      "version": 3,
+      "change_log": [
+        "v1: 初始方案 - 嘟嘟城+gaga鲜语",
+        "v2: 餐厅换为海底捞火锅",
+        "v3: 嘟嘟城拆分两段，插入1小时电话时间"
+      ]
     },
-    "conversation_rounds": [
-      {
-        "round": 1,
-        "user_input": "周六和女朋友出去逛逛，没什么特别想法",
-        "agent_response": "了解！先给你推荐一个西湖经典线路，你看看方向对不对？",
-        "adjustment": "初始方案：西湖骑行+南宋御街+知味观"
-      },
-      {
-        "round": 2,
-        "user_input": "西湖太老套了，想去点新的地方，最好有拍照的地方",
-        "agent_response": "明白！换一个小众文艺路线，拍照超出片的那种 📸",
-        "adjustment": "调整方向：去掉西湖，换成天目里+大运河+馒头山"
-      },
-      {
-        "round": 3,
-        "user_input": "天目里不错！但下午想安静点，有没有咖啡馆推荐",
-        "agent_response": "天目里保留，下午加一个超美的运河边咖啡馆，完美！",
-        "adjustment": "微调：保留天目里，下午换成运河边精品咖啡馆+馒头山日落"
-      }
-    ],
-    "agent_thinking": [
-      {
-        "agent": "orchestrator",
-        "status": "complete",
-        "duration_ms": 650,
-        "thoughts": [
-          "初始意图模糊：'没什么特别想法'",
-          "默认推荐经典路线，等待用户反馈调整",
-          "场景：情侣约会，需浪漫+拍照+氛围"
-        ]
-      },
-      {
-        "agent": "context",
-        "status": "complete",
-        "duration_ms": 280,
-        "thoughts": [
-          "杭州天气：晴，27°C，适合户外",
-          "周六，热门景点人多，推荐小众路线"
-        ]
-      },
-      {
-        "agent": "dining",
-        "status": "complete",
-        "duration_ms": 1300,
-        "thoughts": [
-          "第1轮搜索：知味观等传统杭帮菜",
-          "第2轮调整：文艺风餐厅/咖啡馆",
-          "第3轮确认：运河边精品咖啡馆 → Trivial Coffee(4.9分)",
-          "晚餐：馒头山附近的小众餐厅 → 青藤茶馆旁意面(4.7分)"
-        ]
-      },
-      {
-        "agent": "activity",
-        "status": "complete",
-        "duration_ms": 1200,
-        "thoughts": [
-          "第1轮：西湖骑行+南宋御街 → 用户否决",
-          "第2轮：天目里+大运河 → 用户认可天目里",
-          "第3轮：天目里+运河咖啡+馒头山日落 → 确认",
-          "最终路线全部出片，符合拍照需求"
-        ]
-      },
-      {
-        "agent": "synthesizer",
-        "status": "complete",
-        "duration_ms": 2000,
-        "thoughts": [
-          "经过3轮调整，生成最终方案",
-          "核心路线：天目里(上午) → 运河咖啡(下午) → 馒头山日落(傍晚)",
-          "备选2个变体方案应对不同心情"
-        ]
-      },
-      {
-        "agent": "critic",
-        "status": "complete",
-        "duration_ms": 140,
-        "thoughts": [
-          "最终方案经过3轮用户验证，匹配度极高",
-          "拍照点充足：天目里3处+运河2处+馒头山1处",
-          "节奏松弛，适合约会"
-        ]
-      }
-    ],
-    "plans": [
-      {
-        "id": "plan_a",
-        "name": "天目里 · 运河咖啡 · 馒头山日落",
-        "style": "文艺型",
-        "total_cost": 498,
-        "total_duration_hours": 7.0,
-        "is_final": true,
-        "evolution": "经过3轮对话调整的最终方案",
-        "scores": { "cost": 7, "fun": 9, "convenience": 8, "fit": 10, "uniqueness": 10 },
-        "nodes": [
-          { "id": "n1", "time": "10:00", "duration_min": 20, "type": "transport", "title": "出发", "subtitle": "地铁5号线 · 约20分钟", "cost": 8, "status": "ready" },
-          { "id": "n2", "time": "10:20", "duration_min": 120, "type": "activity", "title": "天目里漫游", "subtitle": "蔦屋书店+B1art+建筑拍照 · 免费", "cost": 0, "status": "ready" },
-          { "id": "n3", "time": "12:20", "duration_min": 70, "type": "dining", "title": "天目里% Arabica", "subtitle": "网红咖啡+轻食 · 4.7分 · 人均65", "cost": 130, "status": "ready" },
-          { "id": "n4", "time": "13:30", "duration_min": 15, "type": "transport", "title": "打车到运河边", "subtitle": "滴滴快车 · 约15分钟", "cost": 22, "status": "ready" },
-          { "id": "n5", "time": "13:45", "duration_min": 90, "type": "activity", "title": "大兜路历史街区慢逛", "subtitle": "运河边拍照 · 香积寺 · 文艺小店", "cost": 0, "status": "ready" },
-          { "id": "n6", "time": "15:15", "duration_min": 75, "type": "dining", "title": "Trivial Coffee", "subtitle": "运河边精品咖啡 · 4.9分 · 落地窗河景 · 人均55", "cost": 110, "status": "ready" },
-          { "id": "n7", "time": "16:30", "duration_min": 20, "type": "transport", "title": "打车到馒头山", "subtitle": "滴滴快车 · 约20分钟", "cost": 28, "status": "ready" },
-          { "id": "n8", "time": "16:50", "duration_min": 70, "type": "activity", "title": "馒头山社区漫步", "subtitle": "小众秘境 · 日落机位 · 俯瞰西湖", "cost": 0, "status": "ready" },
-          { "id": "n9", "time": "18:00", "duration_min": 80, "type": "dining", "title": "山脚下的意面工坊", "subtitle": "手工意面 · 4.7分 · 人均85 · 已预约", "cost": 170, "status": "reserved" },
-          { "id": "n10", "time": "19:20", "duration_min": 20, "type": "transport", "title": "返程", "subtitle": "打车回家", "cost": 30, "status": "ready" }
-        ]
-      },
-      {
-        "id": "plan_b",
-        "name": "天目里 · 小河直街 · 夜景",
-        "style": "浪漫型",
-        "total_cost": 372,
-        "total_duration_hours": 7.0,
-        "scores": { "cost": 8, "fun": 8, "convenience": 9, "fit": 9, "uniqueness": 8 },
-        "nodes": [
-          { "id": "n1", "time": "10:00", "duration_min": 20, "type": "transport", "title": "出发", "subtitle": "地铁5号线 · 约20分钟", "cost": 8, "status": "ready" },
-          { "id": "n2", "time": "10:20", "duration_min": 120, "type": "activity", "title": "天目里漫游", "subtitle": "蔦屋书店+建筑拍照 · 免费", "cost": 0, "status": "ready" },
-          { "id": "n3", "time": "12:20", "duration_min": 60, "type": "dining", "title": "天目里·花厨", "subtitle": "花园餐厅 · 4.6分 · 人均80", "cost": 160, "status": "reserved" },
-          { "id": "n4", "time": "13:20", "duration_min": 15, "type": "transport", "title": "步行到小河直街", "subtitle": "约15分钟", "cost": 0, "status": "ready" },
-          { "id": "n5", "time": "13:35", "duration_min": 90, "type": "activity", "title": "小河直街Citywalk", "subtitle": "白墙黛瓦 · 文艺小店 · 拍照", "cost": 0, "status": "ready" },
-          { "id": "n6", "time": "15:05", "duration_min": 75, "type": "dining", "title": "小河直街·拾年咖啡", "subtitle": "河边咖啡 · 4.8分 · 人均45", "cost": 90, "status": "ready" },
-          { "id": "n7", "time": "16:20", "duration_min": 60, "type": "activity", "title": "运河边骑行到拱宸桥", "subtitle": "共享单车 · 4km · 看运河日落", "cost": 6, "status": "ready" },
-          { "id": "n8", "time": "17:20", "duration_min": 80, "type": "dining", "title": "拱宸桥·老杭州面馆", "subtitle": "片儿川+小菜 · 4.5分 · 人均50", "cost": 100, "status": "ready" },
-          { "id": "n9", "time": "18:40", "duration_min": 30, "type": "activity", "title": "运河夜景散步", "subtitle": "灯光倒映 · 桥边拍照", "cost": 0, "status": "ready" },
-          { "id": "n10", "time": "19:10", "duration_min": 20, "type": "transport", "title": "返程", "subtitle": "地铁回家", "cost": 8, "status": "ready" }
-        ]
-      },
-      {
-        "id": "plan_c",
-        "name": "天目里 · 湿地漫步 · 日落晚餐",
-        "style": "自然型",
-        "total_cost": 545,
-        "total_duration_hours": 7.5,
-        "scores": { "cost": 7, "fun": 8, "convenience": 7, "fit": 8, "uniqueness": 9 },
-        "nodes": [
-          { "id": "n1", "time": "10:00", "duration_min": 20, "type": "transport", "title": "出发", "subtitle": "地铁5号线 · 约20分钟", "cost": 8, "status": "ready" },
-          { "id": "n2", "time": "10:20", "duration_min": 100, "type": "activity", "title": "天目里漫游", "subtitle": "蔦屋书店+B1art+拍照 · 免费", "cost": 0, "status": "ready" },
-          { "id": "n3", "time": "12:00", "duration_min": 60, "type": "dining", "title": "天目里% Arabica + 轻食", "subtitle": "咖啡+三明治 · 人均60", "cost": 120, "status": "ready" },
-          { "id": "n4", "time": "13:00", "duration_min": 20, "type": "transport", "title": "打车到西溪湿地", "subtitle": "滴滴快车 · 约20分钟", "cost": 30, "status": "ready" },
-          { "id": "n5", "time": "13:20", "duration_min": 150, "type": "activity", "title": "西溪湿地北区散步", "subtitle": "免费区域 · 芦苇荡 · 小桥流水 · 拍照", "cost": 0, "status": "ready" },
-          { "id": "n6", "time": "15:50", "duration_min": 60, "type": "dining", "title": "西溪湿地·蒋村慢生活街区茶馆", "subtitle": "龙井茶+糕点 · 4.6分 · 人均50", "cost": 100, "status": "ready" },
-          { "id": "n7", "time": "16:50", "duration_min": 25, "type": "transport", "title": "打车到餐厅", "subtitle": "滴滴快车 · 约25分钟", "cost": 35, "status": "ready" },
-          { "id": "n8", "time": "17:15", "duration_min": 100, "type": "dining", "title": "湖滨银泰·江南驿", "subtitle": "湖景创意杭帮菜 · 4.8分 · 人均120 · 已预约", "cost": 240, "status": "reserved" },
-          { "id": "n9", "time": "18:55", "duration_min": 25, "type": "activity", "title": "湖滨步行街夜景", "subtitle": "西湖灯光秀 · 免费", "cost": 0, "status": "ready" },
-          { "id": "n10", "time": "19:20", "duration_min": 20, "type": "transport", "title": "返程", "subtitle": "地铁/打车", "cost": 12, "status": "ready" }
-        ]
-      }
-    ],
-    "share_message": "帮你精心调整了3轮，最终方案来了 ✨\n10:20 天目里漫游（蔦屋书店📚）\n12:20 % Arabica 咖啡午餐\n13:45 大兜路运河边citywalk\n15:15 Trivial Coffee（河景落地窗☕）\n16:50 馒头山看日落🌅\n18:00 山脚意面工坊（已预约）\n总花费约498元，拍照超出片！",
-    "execution_summary": { "taxi_booked": true, "tickets_bought": false, "restaurant_reserved": true, "total_cost": 498 }
+    "execution_summary": {
+      "taxi_booked": true,
+      "tickets_bought": true,
+      "restaurant_reserved": true,
+      "total_cost": 669
+    }
   }
 ]
